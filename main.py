@@ -5,7 +5,7 @@ HEIGHT = 100
 
 processes = []
 for i in range(1,4):
-    id = "P" + str((i+1))
+    id = "P" + str(i)
     duration = i * 100
     arrival_time = 0
     
@@ -26,13 +26,23 @@ def scheduling_FIFO(processes):
         counter += 1
 
 
-
+    for p in processes:
+        print(p.id)
     @window.event
     def on_draw():
         window.clear()
         
         for rect in rects:
             rect.draw()
+
+
+def scheduling_SJF(processes):
+    def get_durations(process):
+        return process.duration
+    
+    processes.sort(key = get_durations)
+    scheduling_FIFO(processes)
+
 
 
 scheduling_FIFO(processes)
