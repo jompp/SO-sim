@@ -1,6 +1,8 @@
 import pyglet
 import queue
 from Process import Process
+from graph import draw_graph
+
 window = pyglet.window.Window(width = 1195,height = 640)
 HEIGHT = 100
 
@@ -14,15 +16,16 @@ processes = []
 
 
 processes = [Process("P1",100,0,5),Process("P2",150,0,3),Process("P3",50,0,6)]
-wallpaper = pyglet.image.load("./cordenadas.png")
+# wallpaper = pyglet.image.load("./cordenadas.png")
 
-wallpaper = pyglet.sprite.Sprite(wallpaper)
+# wallpaper = pyglet.sprite.Sprite(wallpaper)
 
 def draw_image(rects):
     @window.event
     def on_draw():
         window.clear()
-        wallpaper.draw()
+        draw_graph(window)
+        # wallpaper.draw()
         for rect in rects:
             rect.draw()
 
@@ -118,8 +121,9 @@ def scheduling_EDF(processes, quantum = 20):
     draw_image(rects)
 
 # scheduling_SJF(processes)
-# scheduling_Round_Robin(processes)
-scheduling_FIFO(processes)
+scheduling_Round_Robin(processes)
+
+# scheduling_FIFO(processes)
 
 # scheduling_EDF(processes)
 pyglet.app.run()
