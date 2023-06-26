@@ -68,8 +68,10 @@ class BotaoInput(Widget):
             return
         elif symbol == "BACKSPACE":
             self.label.text = self.label.text[0:-1]
-        if symbol in numeros:
+        elif symbol in numeros:
             self.label.text += symbol
+        elif symbol == "ENTER":
+            pass
         else:
             print("Erro, digite apenas números !")
 

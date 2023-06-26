@@ -115,6 +115,7 @@ class MeuMenu(pyglet.window.Window):
                 widget.digita("BACKSPACE")
             if symbol == pyglet.window.key.ENTER:
                 widget.valor = widget.label.text
+                print(widget.valor)
 
     def on_mouse_press(self, x, y, button, modifiers):
         for widget in self.widgets:
@@ -122,10 +123,3 @@ class MeuMenu(pyglet.window.Window):
         for widget in self.editaveis:
             widget.clica(x,y)
 
-
-window1 = MeuMenu(1366,768)
-icon = pyglet.image.load(Path('sprites/blackjack_icon.png'))
-window1.set_icon(icon)
-
-
-pyglet.app.run()
