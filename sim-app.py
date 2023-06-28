@@ -1,33 +1,23 @@
 import pyglet
 
-window = pyglet.window.Window()
+class AnimationWindow(pyglet.window.Window):
+    def __init__(self, width, height):
+        super().__init__(width, height)
+        self.batch = pyglet.graphics.Batch()
+        self.rect = pyglet.shapes.Rectangle(x=50, y=50, width=0, height=100, color=(0, 255, 0), batch=self.batch)
 
-process_num_txt = pyglet.text.Label('Numero de processos:',
-                          font_name='Times New Roman',
-                          font_size=25,
-                          x=10, y=window.height-40)
+    def update(self, dt):
+        if self.rect.width < 200:
+            self.rect.width += 1
 
-quantum_txt = pyglet.text.Label('Quantum:',
-                          font_name='Times New Roman',
-                          font_size=25,
-                          x=500, y=window.height-40)
+    def on_draw(self):
+        self.clear()
+        self.batch.draw()
 
-process_num_ipt = ''
-quantum_ipt = ''
+    def start_animation(self):
+        pyglet.clock.schedule_interval(self.update, 1/60)  # Update the animation 60 times per second
+        pyglet.app.run()
 
-@window.event
-def on_key_press(symbol, modifiers):
-    global process_num_ipt
-    if symbol == pyglet.window.key.BACKSPACE:
-        process_num_ipt = process_num_ipt[:-1]
-    elif symbol == pyglet.window.key.ENTER:
-        print('Entrada do usuário:', process_num_ipt)
-        process_num_ipt = ''
-
-@window.event
-def on_draw():
-    window.clear()
-    process_num_txt.draw()
-    quantum_txt.draw()
-
-pyglet.app.run()
+# Usage example
+window = AnimationWindow(800, 600)
+window.start_animation()

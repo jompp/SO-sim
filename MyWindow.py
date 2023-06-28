@@ -8,7 +8,9 @@ HEIGHT = 40
 class MyWindow(pyglet.window.Window):
   def __init__(self, width, height):
     super().__init__(width=1366, height=768)
-    self.processes = [Process("P1",100,5,5),Process("P2",150,1,3),Process("P3",50,1,6)]
+    self.processes = [Process(1,200,5,5),Process(2,180,1,3),Process(3,50,1,6)]
+    self.batch = pyglet.graphics.Batch()
+    self.rects = []
   
   def draw_graph(self):
     gl.glClearColor(1, 1, 1, 1)  # Set background color to white
@@ -43,98 +45,93 @@ class MyWindow(pyglet.window.Window):
         ).draw()
 
   def scheduling_FIFO(self):
-    
      
     self.processes.sort(key=lambda p: p.arrival_time)
     prev_end = 50  # Set the initial x-position to the beginning of the x-axis line
-    rects = []
+    # rects = []
     
+
     for i, process in enumerate(self.processes):
         # rectangle = pyglet.shapes.Rectangle(x=prev_end, y=50 + i * 50, width=process.duration, height=HEIGHT,color=(0, 255, 0))
-        rectangle = Rectangle(x=prev_end, y=50 + i * 50, width=process.duration, height=HEIGHT,color=(0, 255, 0), id=process.id, nature = "process")
-        rects.append(rectangle)
+        rectangle = Rectangle(x=prev_end, y=50 + i * 50, width=process.duration, height=HEIGHT,color=(0, 255, 0), id='P'+str(process.id), nature = "process", batch=self.batch)
+        self.rects.append(rectangle)
         prev_end += process.duration
 
-    return rects
+    
   
   def scheduling_SJF(self):
-    
     
     self.processes.sort(key = lambda p: (p.arrival_time,p.duration))
     return self.scheduling_FIFO()
     
 
-  def scheduling_Round_Robin(self,quantum = 20, overload = 10):
+  def scheduling_Round_Robin(self,quantum = 50, overload = 10):
     prev_end = 50
     counter = 0
 
-    rects = []
-    q = queue.Queue()
-    for process in self.processes:
-      q.put(process)
+    
+    q = self.processes
+    
+    y_rects_positions= [50*i for i in range(1,len(q)+1)]
     
 
-    y_label_count = len(self.processes)  # Number of labels on the y-axis
-    y_label_height = (self.height - 100) // y_label_count  # Adjust the height of each y-axis label
+    while len(q) != 0:
+      process = q.pop(0)
 
-    while not q.empty():
-      process = q.get()
-      process_rectangle = Rectangle(x = prev_end, y = 50 + counter * y_label_height,width= quantum,height=HEIGHT, color = (0,255,0), id = process.id, nature = "process")
+      process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(process.id), nature = "process")
 
-      quantum_rectangle = Rectangle(x = prev_end + quantum, y = 50 + counter * y_label_height, width= overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
+      prev_end += quantum
+      overload_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1], width= overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
 
-      rects.append(process_rectangle)
-      rects.append(quantum_rectangle)
-      prev_end += overload + quantum
+    
+
+      self.rects.append(process_rectangle)
+      self.rects.append(overload_rectangle)
+      prev_end += overload
+
 
       process.duration -= quantum
       if process.duration > 0:
-        q.put(process)
-
-      counter = (counter + 1) % y_label_count
-    return rects
-    
-  def scheduling_EDF(self, quantum = 20,overload = 10):
-    q = queue.PriorityQueue()
-    for process in self.processes:
-      q.put(process)
-    
-
-    y_label_count = len(self.processes)  # Number of labels on the y-axis
-    y_label_height = (self.height - 100) // y_label_count  # Adjust the height of each y-axis label
-    prev_end = 50
-    counter = 0
-    rects = []
-    while not q.empty():
-      #checar estouro de deadline
-      process = q.get()
-      process_rectangle = Rectangle(x = prev_end, y = 50 + counter * y_label_height,width= quantum,height=HEIGHT, color = (0,255,0), id = process.id, nature = "process")
-
-      quantum_rectangle = Rectangle(x = prev_end + quantum, y = 50 + counter * y_label_height, width= overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
-
-      rects.append(process_rectangle)
-      rects.append(quantum_rectangle)
-      prev_end += overload + quantum
-
-      process.duration -= quantum
-      if process.duration > 0:
-        q.put(process)
-
-      counter = (counter + 1) % y_label_count
+        q.append(process)
+      
+      
    
-    return rects
+  def scheduling_EDF(self, quantum = 20,overload = 10):
+    
+    q = self.processes
+    
+    y_rects_positions= [50*i for i in range(1,len(q)+1)]
+    prev_end = 50
+   
+    
+    while len(q) != 0:
+      process = min(q)
+      q.remove(process)
+      process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= quantum,height=HEIGHT, color = (0,255,0), id = 'P'+ str(process.id), nature = "process")
+
+      quantum_rectangle = Rectangle(x = prev_end + quantum, y =y_rects_positions[process.id-1], width= overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
+
+      self.rects.append(process_rectangle)
+      self.rects.append(quantum_rectangle)
+      prev_end += overload + quantum
+
+      process.duration -= quantum
+      if process.duration > 0:
+        
+        q.append(process)
 
 
+
+ 
   def on_draw(self):
     self.clear()
     self.draw_graph()
 
-    rects = self.scheduling_FIFO()
-    for i,rect in enumerate(rects):
+    self.scheduling_FIFO()
+    
+    for i,rect in enumerate(self.rects):
       rect.draw()
 
-      # Draw process labels on the y-axis
-      # label = self.processes[i].id
       
       if rect.nature == "process":
 
@@ -154,6 +151,6 @@ class MyWindow(pyglet.window.Window):
 
 
 
-menu = MyWindow(1366,768)
+menu = MyWindow(1920,1080)
 
 pyglet.app.run()
