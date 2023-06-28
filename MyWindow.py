@@ -1,14 +1,14 @@
 import pyglet
 from pyglet import gl
 from Process import Process
-from Rectangle import Rectangle
+from src.Rectangle import Rectangle
 import queue
 
 HEIGHT = 40
 class MyWindow(pyglet.window.Window):
   def __init__(self, width, height):
     super().__init__(width=1366, height=768)
-    self.processes = [Process("P1",100,0,5),Process("P2",150,0,3),Process("P3",50,0,6)]
+    self.processes = [Process("P1",100,5,5),Process("P2",150,1,3),Process("P3",50,1,6)]
   
   def draw_graph(self):
     gl.glClearColor(1, 1, 1, 1)  # Set background color to white
@@ -43,9 +43,12 @@ class MyWindow(pyglet.window.Window):
         ).draw()
 
   def scheduling_FIFO(self):
+    
+     
+    self.processes.sort(key=self.get_arrival_time)
     prev_end = 50  # Set the initial x-position to the beginning of the x-axis line
     rects = []
-
+    
     for i, process in enumerate(self.processes):
         # rectangle = pyglet.shapes.Rectangle(x=prev_end, y=50 + i * 50, width=process.duration, height=HEIGHT,color=(0, 255, 0))
         rectangle = Rectangle(x=prev_end, y=50 + i * 50, width=process.duration, height=HEIGHT,color=(0, 255, 0), id=process.id, nature = "process")
@@ -54,11 +57,16 @@ class MyWindow(pyglet.window.Window):
 
     return rects
   
+  def get_arrival_time(self,process):
+    return process.arrival_time
+  
+  def get_duration(self,process):
+    return process.duration
+  
   def scheduling_SJF(self):
-    def get_durations(process):
-        return process.duration
     
-    self.processes.sort(key = get_durations)
+    
+    self.processes.sort(key = lambda p: (p.arrival_time,p.duration))
     return self.scheduling_FIFO()
     
 
@@ -77,11 +85,11 @@ class MyWindow(pyglet.window.Window):
 
     while not q.empty():
       process = q.get()
-      proces_rectangle = Rectangle(x = prev_end, y = 50 + counter * y_label_height,width= quantum,height=HEIGHT, color = (0,255,0), id = process.id, nature = "process")
+      process_rectangle = Rectangle(x = prev_end, y = 50 + counter * y_label_height,width= quantum,height=HEIGHT, color = (0,255,0), id = process.id, nature = "process")
 
       quantum_rectangle = Rectangle(x = prev_end + quantum, y = 50 + counter * y_label_height, width= overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
 
-      rects.append(proces_rectangle)
+      rects.append(process_rectangle)
       rects.append(quantum_rectangle)
       prev_end += overload + quantum
 
@@ -106,11 +114,11 @@ class MyWindow(pyglet.window.Window):
     while not q.empty():
       #checar estouro de deadline
       process = q.get()
-      proces_rectangle = Rectangle(x = prev_end, y = 50 + counter * y_label_height,width= quantum,height=HEIGHT, color = (0,255,0), id = process.id, nature = "process")
+      process_rectangle = Rectangle(x = prev_end, y = 50 + counter * y_label_height,width= quantum,height=HEIGHT, color = (0,255,0), id = process.id, nature = "process")
 
       quantum_rectangle = Rectangle(x = prev_end + quantum, y = 50 + counter * y_label_height, width= overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
 
-      rects.append(proces_rectangle)
+      rects.append(process_rectangle)
       rects.append(quantum_rectangle)
       prev_end += overload + quantum
 
@@ -133,7 +141,7 @@ class MyWindow(pyglet.window.Window):
 
       # Draw process labels on the y-axis
       # label = self.processes[i].id
-
+      
       if rect.nature == "process":
 
         label = rect.id
