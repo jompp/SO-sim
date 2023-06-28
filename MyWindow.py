@@ -45,7 +45,7 @@ class MyWindow(pyglet.window.Window):
   def scheduling_FIFO(self):
     
      
-    self.processes.sort(key=self.get_arrival_time)
+    self.processes.sort(key=lambda p: p.arrival_time)
     prev_end = 50  # Set the initial x-position to the beginning of the x-axis line
     rects = []
     
@@ -56,12 +56,6 @@ class MyWindow(pyglet.window.Window):
         prev_end += process.duration
 
     return rects
-  
-  def get_arrival_time(self,process):
-    return process.arrival_time
-  
-  def get_duration(self,process):
-    return process.duration
   
   def scheduling_SJF(self):
     
@@ -135,7 +129,7 @@ class MyWindow(pyglet.window.Window):
     self.clear()
     self.draw_graph()
 
-    rects = self.scheduling_SJF()
+    rects = self.scheduling_FIFO()
     for i,rect in enumerate(rects):
       rect.draw()
 
