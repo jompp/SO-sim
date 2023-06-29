@@ -11,7 +11,8 @@ class MyWindow(pyglet.window.Window):
     self.processes = [Process(1,200,5,5),Process(2,180,1,3),Process(3,50,1,6)]
     self.batch = pyglet.graphics.Batch()
     self.rects = []
-  
+    self.turnaround = 0
+
   def draw_graph(self):
     gl.glClearColor(1, 1, 1, 1)  # Set background color to white
     self.clear()
@@ -65,7 +66,7 @@ class MyWindow(pyglet.window.Window):
     return self.scheduling_FIFO()
     
 
-  def scheduling_Round_Robin(self,quantum = 50, overload = 10):
+  def scheduling_Round_Robin(self,quantum = 20, overload = 10):
     prev_end = 50
     counter = 0
 
@@ -78,16 +79,27 @@ class MyWindow(pyglet.window.Window):
     while len(q) != 0:
       process = q.pop(0)
 
-      process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(process.id), nature = "process")
+      process_rectangle = None
+      
+      if process.duration <= quantum:
 
-      prev_end += quantum
-      overload_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1], width= overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
+        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= process.duration,height=HEIGHT, color = (0,255,0), id = 'P'+str(process.id), nature = "process")
+        prev_end += process.duration
 
+      else:
+
+        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(process.id), nature = "process")
+
+        prev_end += quantum
+        overload_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1], width= overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
+
+        self.rects.append(overload_rectangle)
+        self.turnaround += self.turnaround + quantum
+        prev_end += overload
     
 
       self.rects.append(process_rectangle)
-      self.rects.append(overload_rectangle)
-      prev_end += overload
+     
 
 
       process.duration -= quantum
@@ -102,17 +114,17 @@ class MyWindow(pyglet.window.Window):
     
     y_rects_positions= [50*i for i in range(1,len(q)+1)]
     prev_end = 50
-   
+    
     
     while len(q) != 0:
       process = min(q)
       q.remove(process)
       process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= quantum,height=HEIGHT, color = (0,255,0), id = 'P'+ str(process.id), nature = "process")
 
-      quantum_rectangle = Rectangle(x = prev_end + quantum, y =y_rects_positions[process.id-1], width= overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
+      overload_rectangle = Rectangle(x = prev_end + quantum, y =y_rects_positions[process.id-1], width= overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
 
       self.rects.append(process_rectangle)
-      self.rects.append(quantum_rectangle)
+      self.rects.append(overload_rectangle)
       prev_end += overload + quantum
 
       process.duration -= quantum
@@ -127,7 +139,7 @@ class MyWindow(pyglet.window.Window):
     self.clear()
     self.draw_graph()
 
-    self.scheduling_FIFO()
+    self.scheduling_Round_Robin()
     
     for i,rect in enumerate(self.rects):
       rect.draw()
