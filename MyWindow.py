@@ -65,34 +65,48 @@ class MyWindow(pyglet.window.Window):
     return self.scheduling_FIFO()
     
 
-  def scheduling_Round_Robin(self,quantum = 50, overload = 10):
-    prev_end = 50
+  def scheduling_Round_Robin(self, quantum=50, overload=10):
+    prev_end = 0
     counter = 0
 
-    
     q = self.processes
-    
-    y_rects_positions= [50*i for i in range(1,len(q)+1)]
-    
+    y_rects_positions = [50 * i for i in range(1, len(q) + 1)]
 
     while len(q) != 0:
-      process = q.pop(0)
+        process = q.pop(0)
 
-      process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(process.id), nature = "process")
+        process_start = prev_end
+        process_end = min(prev_end + quantum, process.duration)
+        process_rectangle = Rectangle(
+            x=process_start,
+            y=y_rects_positions[process.id - 1],
+            width=process_end - process_start,
+            height=HEIGHT,
+            color=(0, 255, 0),
+            id='P' + str(process.id),
+            nature="process"
+        )
+        self.rects.append(process_rectangle)
+        prev_end = process_end
 
-      prev_end += quantum
-      overload_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1], width= overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
+        if process.duration > quantum:
+            overload_start = process_end
+            overload_end = min(process_end + overload, process.duration)
+            overload_rectangle = Rectangle(
+                x=overload_start,
+                y=y_rects_positions[process.id - 1],
+                width=overload_end - overload_start,
+                height=HEIGHT,
+                color=(255, 0, 0),
+                id="",
+                nature="quantum"
+            )
+            self.rects.append(overload_rectangle)
+            prev_end = overload_end
 
-    
+            process.duration -= (overload_end - process_start)
+            q.append(process)
 
-      self.rects.append(process_rectangle)
-      self.rects.append(overload_rectangle)
-      prev_end += overload
-
-
-      process.duration -= quantum
-      if process.duration > 0:
-        q.append(process)
       
       
    
