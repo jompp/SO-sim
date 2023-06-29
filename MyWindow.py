@@ -8,10 +8,23 @@ HEIGHT = 40
 class MyWindow(pyglet.window.Window):
   def __init__(self, width, height):
     super().__init__(width=1366, height=768)
-    self.processes = [Process(1,200,5,5),Process(2,180,1,3),Process(3,50,1,6)]
+    self.processes = [Process(1,200,5,4),Process(2,180,1,3),Process(3,50,1,6),Process(4,100,1,5)]
     self.batch = pyglet.graphics.Batch()
     self.rects = []
+    self.current_index = 0
+    self.speed = 1
     self.turnaround = 0
+
+  def update(self,dt):
+    
+    rect = self.rects[self.current_index]
+
+    if rect.width < rect.desired_width:
+      rect.width += self.speed
+    else:
+      self.current_index += 1
+      if self.current_index >= len(self.rects):
+        pyglet.clock.unschedule(self.update)  # Stop the animation if all rectangles are drawn
 
   def draw_graph(self):
     gl.glClearColor(1, 1, 1, 1)  # Set background color to white
@@ -54,7 +67,8 @@ class MyWindow(pyglet.window.Window):
 
     for i, process in enumerate(self.processes):
         # rectangle = pyglet.shapes.Rectangle(x=prev_end, y=50 + i * 50, width=process.duration, height=HEIGHT,color=(0, 255, 0))
-        rectangle = Rectangle(x=prev_end, y=50 + i * 50, width=process.duration, height=HEIGHT,color=(0, 255, 0), id='P'+str(process.id), nature = "process", batch=self.batch)
+        rectangle = Rectangle(x=prev_end, y=50 + i * 50, desired_width= process.duration,width=0, height=HEIGHT,color=(0, 255, 0), id='P'+str(process.id), nature = "process", batch=self.batch, )
+
         self.rects.append(rectangle)
         prev_end += process.duration
 
@@ -83,24 +97,21 @@ class MyWindow(pyglet.window.Window):
       
       if process.duration <= quantum:
 
-        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= process.duration,height=HEIGHT, color = (0,255,0), id = 'P'+str(process.id), nature = "process")
+        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= 0,desired_width=process.duration,height=HEIGHT, color = (0,255,0), id = 'P'+str(process.id), nature = "process")
         prev_end += process.duration
 
+        self.rects.append(process_rectangle)
       else:
 
-        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(process.id), nature = "process")
+        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= 0, desired_width=quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(process.id), nature = "process")
 
         prev_end += quantum
-        overload_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1], width= overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
+        overload_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1], width= 0,desired_width=overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
 
+        self.rects.append(process_rectangle)
         self.rects.append(overload_rectangle)
-        self.turnaround += self.turnaround + quantum
+        
         prev_end += overload
-    
-
-      self.rects.append(process_rectangle)
-     
-
 
       process.duration -= quantum
       if process.duration > 0:
@@ -119,28 +130,30 @@ class MyWindow(pyglet.window.Window):
     while len(q) != 0:
       process = min(q)
       q.remove(process)
-      process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= quantum,height=HEIGHT, color = (0,255,0), id = 'P'+ str(process.id), nature = "process")
 
-      overload_rectangle = Rectangle(x = prev_end + quantum, y =y_rects_positions[process.id-1], width= overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
+      process_rectangle = None
+      if process.duration <= quantum:
+        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= 0,desired_width= process.duration,height=HEIGHT, color = (0,255,0), id = 'P'+ str(process.id), nature = "process")
+        prev_end += process.duration
 
-      self.rects.append(process_rectangle)
-      self.rects.append(overload_rectangle)
-      prev_end += overload + quantum
+        self.rects.append(process_rectangle)
 
+      else:
+        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= 0, desired_width= quantum,height=HEIGHT, color = (0,255,0), id = 'P'+ str(process.id), nature = "process")
+        overload_rectangle = Rectangle(x = prev_end + quantum, y =y_rects_positions[process.id-1], width= 0, desired_width=overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
+
+        self.rects.append(process_rectangle)
+        self.rects.append(overload_rectangle)
+        prev_end += overload + quantum
+
+      
       process.duration -= quantum
       if process.duration > 0:
         
         q.append(process)
 
 
-
- 
-  def on_draw(self):
-    self.clear()
-    self.draw_graph()
-
-    self.scheduling_Round_Robin()
-    
+  def draw_processes_labels(self):
     for i,rect in enumerate(self.rects):
       rect.draw()
 
@@ -160,9 +173,20 @@ class MyWindow(pyglet.window.Window):
             color=(0, 0, 0, 255)  # Set label color to black
         ).draw()
 
+ 
+  def on_draw(self):
+    self.clear()
+    self.draw_graph()
+    self.draw_processes_labels()
 
+    self.batch.draw()
+    
+  def start_animation(self):
+    pyglet.clock.schedule_interval(self.update, 1/60)  # Update the animation 60 times per second
+    pyglet.app.run()
 
 
 menu = MyWindow(1920,1080)
-
-pyglet.app.run()
+menu.scheduling_EDF()
+menu.start_animation()
+# pyglet.app.run()
