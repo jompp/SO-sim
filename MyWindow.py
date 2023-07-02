@@ -3,24 +3,41 @@ from pyglet import gl
 from Process import Process
 from src.Rectangle import Rectangle
 import queue
+from collections import deque
 
 HEIGHT = 40
 class MyWindow(pyglet.window.Window):
   def __init__(self, width, height):
     super().__init__(width=1366, height=768)
-    self.processes = [Process("P1",100,0,5),Process("P2",150,0,3),Process("P3",50,0,6)]
-  
+    self.processes = [Process(1,200,5,4),Process(2,180,1,3),Process(3,50,1,6),Process(4,100,1,5)]
+    self.batch = pyglet.graphics.Batch()
+    self.rects = []
+    self.current_index = 0
+    self.speed = 1
+    self.turnaround = 0
+
+  def update(self,dt):
+    
+    rect = self.rects[self.current_index]
+
+    if rect.width < rect.desired_width:
+      rect.width += self.speed
+    else:
+      self.current_index += 1
+      if self.current_index >= len(self.rects):
+        pyglet.clock.unschedule(self.update)  # Stop the animation if all rectangles are drawn
+
   def draw_graph(self):
     gl.glClearColor(1, 1, 1, 1)  # Set background color to white
     self.clear()
 
-    # Draw x-axis line
-    pyglet.graphics.draw(2, pyglet.gl.GL_LINES,
+    # # Draw x-axis line
+    pyglet.graphics.draw(2, gl.GL_LINES
                           # Extend line across window width
                           ('v2f', [50, 50, self.width - 50, 50]),
-                          # Set line color to black
+                          # # Set line color to black
                           ('c3B', (0, 0, 0, 0, 0, 0))
-                          )
+                        )
 
     # Draw x-axis labels
     label_interval = 5
@@ -43,97 +60,145 @@ class MyWindow(pyglet.window.Window):
         ).draw()
 
   def scheduling_FIFO(self):
+     
+    self.processes.sort(key=lambda p: p.arrival_time)
     prev_end = 50  # Set the initial x-position to the beginning of the x-axis line
-    rects = []
+    # rects = []
+    
 
     for i, process in enumerate(self.processes):
         # rectangle = pyglet.shapes.Rectangle(x=prev_end, y=50 + i * 50, width=process.duration, height=HEIGHT,color=(0, 255, 0))
-        rectangle = Rectangle(x=prev_end, y=50 + i * 50, width=process.duration, height=HEIGHT,color=(0, 255, 0), id=process.id, nature = "process")
-        rects.append(rectangle)
+        rectangle = Rectangle(x=prev_end, y=50 + i * 50, desired_width= process.duration,width=0, height=HEIGHT,color=(0, 255, 0), id='P'+str(process.id), nature = "process", batch=self.batch, )
+
+        self.rects.append(rectangle)
         prev_end += process.duration
 
-    return rects
+    
   
   def scheduling_SJF(self):
-    def get_durations(process):
-        return process.duration
     
-    self.processes.sort(key = get_durations)
+    self.processes.sort(key = lambda p: (p.arrival_time,p.duration))
     return self.scheduling_FIFO()
     
 
   def scheduling_Round_Robin(self,quantum = 20, overload = 10):
+    ready_queue = deque()
+    current_time = 0
+    total_processes = len(self.processes)
+    completed_processes = []    
+    self.processes.sort(key= lambda p: p.arrival_time)
+ 
+    y_rects_positions= [50*i for i in range(1,len(self.processes)+1)]
     prev_end = 50
-    counter = 0
 
-    rects = []
-    q = queue.Queue()
-    for process in self.processes:
-      q.put(process)
+    next_process_index = 0
     
+    while len(completed_processes) < total_processes:
 
-    y_label_count = len(self.processes)  # Number of labels on the y-axis
-    y_label_height = (self.height - 100) // y_label_count  # Adjust the height of each y-axis label
+      for i in range(next_process_index,total_processes):
 
-    while not q.empty():
-      process = q.get()
-      proces_rectangle = Rectangle(x = prev_end, y = 50 + counter * y_label_height,width= quantum,height=HEIGHT, color = (0,255,0), id = process.id, nature = "process")
+        if self.processes[i].arrival_time <= current_time:
+          ready_queue.append(self.processes[i])
+          next_process_index = i + 1
+      
+      
+      if len(ready_queue) == 0:
+        current_time += 1
+        continue
 
-      quantum_rectangle = Rectangle(x = prev_end + quantum, y = 50 + counter * y_label_height, width= overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
+      current_process = ready_queue.popleft()
 
-      rects.append(proces_rectangle)
-      rects.append(quantum_rectangle)
-      prev_end += overload + quantum
+      if current_process.duration <= quantum:
+        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0,desired_width=current_process.duration,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
+        current_time += current_process.duration
+        prev_end += current_process.duration
+        current_process.duration = 0
+        completed_processes.append(current_process)
+        self.rects.append(process_rectangle)
 
-      process.duration -= quantum
-      if process.duration > 0:
-        q.put(process)
+      else:
+        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0, desired_width=quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
 
-      counter = (counter + 1) % y_label_count
-    return rects
-    
-  def scheduling_EDF(self, quantum = 20,overload = 10):
-    q = queue.PriorityQueue()
-    for process in self.processes:
-      q.put(process)
-    
+        prev_end += quantum
+        overload_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0,desired_width=overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
+        prev_end += overload
+        self.rects.append(process_rectangle)
+        self.rects.append(overload_rectangle)
+        
+        
+        current_time += quantum
+        current_process.duration -= quantum
+        ready_queue.append(current_process)
+      
+    # while len(ready_queue) != 0:
+  
+    #   process = q.pop(0)
 
-    y_label_count = len(self.processes)  # Number of labels on the y-axis
-    y_label_height = (self.height - 100) // y_label_count  # Adjust the height of each y-axis label
-    prev_end = 50
-    counter = 0
-    rects = []
-    while not q.empty():
-      #checar estouro de deadline
-      process = q.get()
-      proces_rectangle = Rectangle(x = prev_end, y = 50 + counter * y_label_height,width= quantum,height=HEIGHT, color = (0,255,0), id = process.id, nature = "process")
+    #   process_rectangle = None
+      
+    #   if process.duration <= quantum:
 
-      quantum_rectangle = Rectangle(x = prev_end + quantum, y = 50 + counter * y_label_height, width= overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
+    #     process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= 0,desired_width=process.duration,height=HEIGHT, color = (0,255,0), id = 'P'+str(process.id), nature = "process")
+    #     prev_end += process.duration
 
-      rects.append(proces_rectangle)
-      rects.append(quantum_rectangle)
-      prev_end += overload + quantum
+    #     self.rects.append(process_rectangle)
+    #   else:
 
-      process.duration -= quantum
-      if process.duration > 0:
-        q.put(process)
+    #     process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= 0, desired_width=quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(process.id), nature = "process")
 
-      counter = (counter + 1) % y_label_count
+    #     prev_end += quantum
+    #     overload_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1], width= 0,desired_width=overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
+
+    #     self.rects.append(process_rectangle)
+    #     self.rects.append(overload_rectangle)
+        
+    #     prev_end += overload
+
+    #   process.duration -= quantum
+    #   if process.duration > 0:
+    #     q.append(process)
+      
+      
    
-    return rects
+  def scheduling_EDF(self, quantum = 20,overload = 10):
+    
+    q = self.processes
+    
+    y_rects_positions= [50*i for i in range(1,len(q)+1)]
+    prev_end = 50
+    
+    
+    while len(q) != 0:
+      process = min(q)
+      q.remove(process)
+
+      process_rectangle = None
+      if process.duration <= quantum:
+        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= 0,desired_width= process.duration,height=HEIGHT, color = (0,255,0), id = 'P'+ str(process.id), nature = "process")
+        prev_end += process.duration
+
+        self.rects.append(process_rectangle)
+
+      else:
+        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= 0, desired_width= quantum,height=HEIGHT, color = (0,255,0), id = 'P'+ str(process.id), nature = "process")
+        overload_rectangle = Rectangle(x = prev_end + quantum, y =y_rects_positions[process.id-1], width= 0, desired_width=overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
+
+        self.rects.append(process_rectangle)
+        self.rects.append(overload_rectangle)
+        prev_end += overload + quantum
+
+      
+      process.duration -= quantum
+      if process.duration > 0:
+        
+        q.append(process)
 
 
-  def on_draw(self):
-    self.clear()
-    self.draw_graph()
-
-    rects = self.scheduling_SJF()
-    for i,rect in enumerate(rects):
+  def draw_processes_labels(self):
+    for i,rect in enumerate(self.rects):
       rect.draw()
 
-      # Draw process labels on the y-axis
-      # label = self.processes[i].id
-
+      
       if rect.nature == "process":
 
         label = rect.id
@@ -149,9 +214,20 @@ class MyWindow(pyglet.window.Window):
             color=(0, 0, 0, 255)  # Set label color to black
         ).draw()
 
+ 
+  def on_draw(self):
+    self.clear()
+    self.draw_graph()
+    self.draw_processes_labels()
+
+    self.batch.draw()
+    
+  def start_animation(self):
+    pyglet.clock.schedule_interval(self.update, 1/60)  # Update the animation 60 times per second
+    pyglet.app.run()
 
 
-
-menu = MyWindow(1366,768)
-
-pyglet.app.run()
+menu = MyWindow(1920,1080)
+menu.scheduling_Round_Robin()
+menu.start_animation()
+# pyglet.app.run()

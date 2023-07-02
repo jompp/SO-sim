@@ -1,33 +1,33 @@
 import pyglet
 
-window = pyglet.window.Window()
+class AnimationWindow(pyglet.window.Window):
+    def __init__(self, width, height):
+        super().__init__(width, height)
+        self.batch = pyglet.graphics.Batch()
+        self.rectangles = [
+            pyglet.shapes.Rectangle(x=50 + i*100, y=50 + i*100, width=0, height=100, color=(0, 255, 0), batch=self.batch)
+            for i in range(4)
+        ]
+        self.current_index = 0
+        self.speed = 2  # Speed of the animation
 
-process_num_txt = pyglet.text.Label('Numero de processos:',
-                          font_name='Times New Roman',
-                          font_size=25,
-                          x=10, y=window.height-40)
+    def update(self, dt):
+        rect = self.rectangles[self.current_index]
+        if rect.width < 200:
+            rect.width += self.speed
+        else:
+            self.current_index += 1
+            if self.current_index >= len(self.rectangles):
+                pyglet.clock.unschedule(self.update)  # Stop the animation if all rectangles are drawn
 
-quantum_txt = pyglet.text.Label('Quantum:',
-                          font_name='Times New Roman',
-                          font_size=25,
-                          x=500, y=window.height-40)
+    def on_draw(self):
+        self.clear()
+        self.batch.draw()
 
-process_num_ipt = ''
-quantum_ipt = ''
+    def start_animation(self):
+        pyglet.clock.schedule_interval(self.update, 1/60)  # Update the animation 60 times per second
+        pyglet.app.run()
 
-@window.event
-def on_key_press(symbol, modifiers):
-    global process_num_ipt
-    if symbol == pyglet.window.key.BACKSPACE:
-        process_num_ipt = process_num_ipt[:-1]
-    elif symbol == pyglet.window.key.ENTER:
-        print('Entrada do usuário:', process_num_ipt)
-        process_num_ipt = ''
-
-@window.event
-def on_draw():
-    window.clear()
-    process_num_txt.draw()
-    quantum_txt.draw()
-
-pyglet.app.run()
+# Usage example
+window = AnimationWindow(800, 600)
+window.start_animation()

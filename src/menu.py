@@ -16,7 +16,8 @@ class MeuMenu(pyglet.window.Window):
         self.processes = [Process("P1",100,0,5),Process("P2",150,0,3),Process("P3",50,0,6)]
 
         self.contagem = 1
-
+        
+        self.process = []
         self.sobrecarga = Botao(1030,20,150,70,"Sobrecarga = 1",self.turnaround)
 
         self.execution_time = BotaoInput(30, 680, 250, 70, "Duração:")
