@@ -1,8 +1,11 @@
 import pyglet
 from pyglet import gl
+from pathlib import Path
 from Process import Process
 from src.Rectangle import Rectangle
-import queue
+from src.botoes.botao_main import Botao, BotaoInput
+from collections import deque
+
 
 HEIGHT = 40
 class MyWindow(pyglet.window.Window):
@@ -14,6 +17,7 @@ class MyWindow(pyglet.window.Window):
     self.current_index = 0
     self.speed = 1
     self.turnaround = 0
+    
 
   def update(self,dt):
     
@@ -45,19 +49,20 @@ class MyWindow(pyglet.window.Window):
     label_width = (self.width - 100) // label_count
 
     for i in range(label_count + 1):
-        label = str(i * label_interval)
-        x_pos = 50 + i * label_width - len(label) * 5
+      label = str(i * label_interval)
+      x_pos = 50 + i * label_width - len(label) * 5
 
-        pyglet.text.Label(
-            label,
-            font_size=12,
-            x=x_pos,
-            y=30,
-            anchor_x='center',
-            anchor_y='top',
-            color=(0, 0, 0, 255)  # Set label color to black
-        ).draw()
-
+      pyglet.text.Label(
+          label,
+          font_size=12,
+          x=x_pos,
+          y=30,
+          anchor_x='center',
+          anchor_y='top',
+          color=(0, 0, 0, 255)  # Set label color to black
+      ).draw()
+  
+  
   def scheduling_FIFO(self):
      
     self.processes.sort(key=lambda p: p.arrival_time)
@@ -81,41 +86,58 @@ class MyWindow(pyglet.window.Window):
     
 
   def scheduling_Round_Robin(self,quantum = 20, overload = 10):
+    ready_queue = deque()
+    current_time = 0
+    total_processes = len(self.processes)
+    completed_processes = []    
+    self.processes.sort(key= lambda p: p.arrival_time)
+ 
+    y_rects_positions= [50*i for i in range(1,len(self.processes)+1)]
     prev_end = 50
-    counter = 0
 
+    next_process_index = 0
     
-    q = self.processes
-    
-    y_rects_positions= [50*i for i in range(1,len(q)+1)]
-    
+    while len(completed_processes) < total_processes:
 
-    while len(q) != 0:
-      process = q.pop(0)
+      for i in range(next_process_index,total_processes):
 
-      process_rectangle = None
+        if self.processes[i].arrival_time <= current_time:
+          ready_queue.append(self.processes[i])
+          next_process_index = i + 1
       
-      if process.duration <= quantum:
+      
+      if len(ready_queue) == 0:
+        current_time += 1
+        prev_end += current_time
+        continue
 
-        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= 0,desired_width=process.duration,height=HEIGHT, color = (0,255,0), id = 'P'+str(process.id), nature = "process")
-        prev_end += process.duration
+      current_process = ready_queue.popleft()
 
+      if current_process.duration <= quantum:
+        
+        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0,desired_width=current_process.duration,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
+
+        current_time += current_process.duration
+        prev_end += current_process.duration
+
+        current_process.duration = 0
+        completed_processes.append(current_process)
         self.rects.append(process_rectangle)
-      else:
 
-        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= 0, desired_width=quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(process.id), nature = "process")
+      else:
+        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0, desired_width=quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
 
         prev_end += quantum
-        overload_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1], width= 0,desired_width=overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
-
+        overload_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0,desired_width=overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
+        prev_end += overload
         self.rects.append(process_rectangle)
         self.rects.append(overload_rectangle)
         
-        prev_end += overload
-
-      process.duration -= quantum
-      if process.duration > 0:
-        q.append(process)
+        
+        current_time += quantum
+        current_process.duration -= quantum
+        # If the process isnt finished, we add it do the end of queue
+        ready_queue.append(current_process)
       
       
    
@@ -123,35 +145,62 @@ class MyWindow(pyglet.window.Window):
     
     q = self.processes
     
-    y_rects_positions= [50*i for i in range(1,len(q)+1)]
+    
+    ready_queue = deque()
+    current_time = 0 
+    total_processes = len(self.processes)
+    completed_processes = []
+    self.processes.sort(key = lambda p: (p.arrival_time,p.deadline))
+    
+    y_rects_positions= [50*i for i in range(1,len(self.processes)+1)]
+    next_process_index = 0
+
     prev_end = 50
-    
-    
-    while len(q) != 0:
-      process = min(q)
-      q.remove(process)
+    while len(completed_processes) < total_processes:
+      for i in range(next_process_index,total_processes):
 
-      process_rectangle = None
-      if process.duration <= quantum:
-        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= 0,desired_width= process.duration,height=HEIGHT, color = (0,255,0), id = 'P'+ str(process.id), nature = "process")
-        prev_end += process.duration
+        if self.processes[i].arrival_time <= current_time:
+          ready_queue.append(self.processes[i])
+          next_process_index = i + 1
+      
+      if len(ready_queue) == 0:
+        current_time += 1
+        prev_end += current_time
+        continue
+      
 
+      current_process = ready_queue.popleft()
+
+      if current_process.deadline > current_time:
+        # Draw Deadline burst 105,105,105
+        pass
+      
+      if current_process.duration <= quantum:
+        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0,desired_width=current_process.duration,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
+
+        current_time += current_process.duration
+        prev_end += current_process.duration
+
+        current_process.duration = 0
+        completed_processes.append(current_process)
         self.rects.append(process_rectangle)
-
+        
       else:
-        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[process.id-1],width= 0, desired_width= quantum,height=HEIGHT, color = (0,255,0), id = 'P'+ str(process.id), nature = "process")
-        overload_rectangle = Rectangle(x = prev_end + quantum, y =y_rects_positions[process.id-1], width= 0, desired_width=overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
+        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0, desired_width=quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
 
+        prev_end += quantum
+        overload_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0,desired_width=overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
+        prev_end += overload
         self.rects.append(process_rectangle)
         self.rects.append(overload_rectangle)
-        prev_end += overload + quantum
-
-      
-      process.duration -= quantum
-      if process.duration > 0:
         
-        q.append(process)
-
+        
+        current_time += quantum
+        current_process.duration -= quantum
+        current_process.deadline -= quantum
+        # If the process isnt finished, we add it do the end of queue
+        ready_queue.append(current_process)
+      
 
   def draw_processes_labels(self):
     for i,rect in enumerate(self.rects):

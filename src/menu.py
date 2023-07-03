@@ -181,6 +181,7 @@ class MeuMenu(pyglet.window.Window):
         self.linhainf.draw()
         self.sprite.draw()
         self.sprite2.draw()
+        
     def on_draw(self):
         if self.window == "Menu":
             self.draw_menu()
