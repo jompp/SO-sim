@@ -2,8 +2,8 @@ import pyglet
 
 class Grid:
   def __init__(self, memory):
-    self.square_size = 40
-
+    self.square_size = 50
+    self.border_size = 2
     if memory == "RAM":
       self.label_text = "RAM"
       self.num_rows = 5
@@ -50,19 +50,58 @@ class Grid:
         border_color = (0, 0, 0)
 
         # Draw the border of the square
-        border_size = 2
-        border_x = square_x - border_size
-        border_y = square_y - border_size
-        border_width = self.square_size + 2 * border_size
-        border_height = self.square_size + 2 * border_size
+        
+        border_x = square_x - self.border_size
+        border_y = square_y - self.border_size
+        border_width = self.square_size + 2 * self.border_size
+        border_height = self.square_size + 2 * self.border_size
 
         # Draw the border
-        pyglet.graphics.draw(4, pyglet.gl.GL_QUADS,
-                              ('v2f', (border_x, border_y,
-                                        border_x + border_width, border_y,
-                                        border_x + border_width, border_y + border_height,
-                                        border_x, border_y + border_height)),
-                              ('c3B', border_color * 4))
+        pyglet.shapes.Rectangle(
+        x=border_x, y=border_y, width=border_width, height=border_height, color=border_color
+        ).draw()
 
         # Draw the square
         square.draw()
+
+
+  # the bigger label stands for the process, and the smaller stands for the address
+  def draw_process_pages(self,pages,row,col):
+    
+
+    for page in pages:
+      font_size = int(self.square_size * 0.4)
+      square_x = self.grid_x + col * self.square_size
+      square_y = self.grid_y + row * self.square_size
+
+      border_x = square_x - self.border_size
+      border_y = square_y - self.border_size
+
+      border_width = self.square_size + 2 * self.border_size
+      border_height = self.square_size + 2 * self.border_size
+      number = page[0]
+      label = pyglet.text.Label(
+          str(number),
+          font_name='Arial',
+          font_size=font_size,
+          x=square_x + self.square_size // 2,
+          y=square_y + self.square_size // 2,
+          anchor_x='center',
+          anchor_y='center',
+          color=(0, 0, 0, 255)  # Set the text color to black
+      )
+      label.draw()
+
+      # Draw number in the top left corner with decreased font size in black
+      small_font_size = int(font_size * 0.6)
+      small_label = pyglet.text.Label(
+          str(number),
+          font_name='Arial',
+          font_size=small_font_size,
+          x=border_x + self.border_size,
+          y=border_y + border_height - self.border_size,
+          anchor_x='left',
+          anchor_y='top',
+          color=(0, 0, 0, 255)  # Set the text color to black
+      )
+      small_label.draw()

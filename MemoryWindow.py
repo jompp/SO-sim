@@ -5,8 +5,9 @@ class MemoryWindow(pyglet.window.Window):
     def __init__(self):
         super().__init__(width=1366, height=768)
         self.RAM = Grid(memory="RAM")
-        print(self.RAM.label_text)
         self.DISK = Grid(memory="Disk")
+
+        self.pages = [(4,2),(5,1),(1,2)]
         
 
     def on_draw(self):
@@ -16,7 +17,7 @@ class MemoryWindow(pyglet.window.Window):
         self.RAM.draw()
         self.DISK.draw()
 
-
+        
 
 m = MemoryWindow()
 

@@ -5,7 +5,7 @@ from Process import Process
 from src.Rectangle import Rectangle
 from src.botoes.botao_main import BotaoInput,Widget
 from collections import deque
-
+import queue
 
 HEIGHT = 40
 class MyWindow(pyglet.window.Window):
@@ -155,6 +155,7 @@ class MyWindow(pyglet.window.Window):
                           ('c3B', (0, 0, 0, 0, 0, 0))
                           )
 
+
     # Draw x-axis labels
     label_interval = 5
     # Adjust label_count based on window width
@@ -201,7 +202,7 @@ class MyWindow(pyglet.window.Window):
 
   def scheduling_Round_Robin(self, overload = 20):
     quantum = int(self.quantum.valor) * self.pixels_time_ratio
-    ready_queue = deque()
+    ready_queue = queue.Pr()
     current_time = 0
     total_processes = len(self.processes)
     completed_processes = []    
@@ -245,13 +246,13 @@ class MyWindow(pyglet.window.Window):
         self.rects.append(overload_rectangle)
         
         
-        current_time += quantum
+        current_time += quantum + overload
         current_process.duration -= quantum
         ready_queue.append(current_process)
    
   def scheduling_EDF(self,overload = 20):
-    quantum = int(self.quantum.valor)
-    ready_queue = deque()
+    quantum = int(self.quantum.valor) * self.pixels_time_ratio
+    ready_queue = queue.PriorityQueue()
     current_time = 0 
     total_processes = len(self.processes)
     completed_processes = []
@@ -265,16 +266,17 @@ class MyWindow(pyglet.window.Window):
       for i in range(next_process_index,total_processes):
 
         if self.processes[i].arrival_time <= current_time:
-          ready_queue.append(self.processes[i])
+          ready_queue.put(self.processes[i])
           next_process_index = i + 1
       
       if len(ready_queue) == 0:
-        current_time += 1
+        # 1 second -> 20 pixels
+        current_time += 20
         prev_end += current_time
         continue
       
 
-      current_process = ready_queue.popleft()
+      current_process = ready_queue.get()
 
       if current_process.deadline > current_time:
         # Draw Deadline burst 
@@ -300,11 +302,11 @@ class MyWindow(pyglet.window.Window):
         self.rects.append(overload_rectangle)
         
         
-        current_time += quantum
+        current_time += quantum + overload
         current_process.duration -= quantum
         current_process.deadline -= quantum
         # If the process isnt finished, we add it do the end of queue
-        ready_queue.append(current_process)
+        ready_queue.put(current_process)
       
 
   def draw_processes_labels(self):
