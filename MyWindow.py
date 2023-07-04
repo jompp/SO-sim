@@ -6,6 +6,7 @@ from src.Rectangle import Rectangle
 from src.botoes.botao_main import BotaoInput,Widget
 from collections import deque
 from quadradosprocessos import ProcessSquare
+import queue
 
 
 HEIGHT = 40
@@ -259,8 +260,8 @@ class MyWindow(pyglet.window.Window):
         ready_queue.append(current_process)
    
   def scheduling_EDF(self,overload = 20):
-    quantum = int(self.quantum.valor) * self.get_pixel_ratio
-    ready_queue = deque()
+    quantum = int(self.quantum.valor) * self.pixels_time_ratio
+    ready_queue = queue.PriorityQueue()
     current_time = 0 
     total_processes = len(self.processes)
     completed_processes = []
@@ -274,23 +275,22 @@ class MyWindow(pyglet.window.Window):
       for i in range(next_process_index,total_processes):
 
         if self.processes[i].arrival_time <= current_time:
-          ready_queue.append(self.processes[i])
+          ready_queue.put(self.processes[i])
           next_process_index = i + 1
       
-      if len(ready_queue) == 0:
-        current_time += 1
+      if ready_queue.qsize == 0:
+        current_time += 20
         prev_end += current_time
         continue
       
 
-      current_process = ready_queue.popleft()
-
-      if current_process.deadline > current_time:
-        # Draw Deadline burst 
-        pass
+      current_process = ready_queue.get()
       
       if current_process.duration <= quantum:
-        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0,desired_width=current_process.duration,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
+        if current_process.deadline < current_time:
+          process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0, desired_width=current_process.duration, height=HEIGHT, color=(211, 211, 211), id='P'+str(current_process.id), nature = "process") 
+        else:
+          process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0,desired_width=current_process.duration,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
 
         current_time += current_process.duration
         prev_end += current_process.duration
@@ -300,7 +300,10 @@ class MyWindow(pyglet.window.Window):
         self.rects.append(process_rectangle)
         
       else:
-        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0, desired_width=quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
+        if current_process.deadline < current_time:
+          process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0, desired_width=quantum, height=HEIGHT, color=(211, 211, 211), id='P'+str(current_process.id), nature = "process") 
+        else:
+          process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0, desired_width=quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
 
         prev_end += quantum
         overload_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0,desired_width=overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
@@ -309,11 +312,11 @@ class MyWindow(pyglet.window.Window):
         self.rects.append(overload_rectangle)
         
         
-        current_time += quantum
+        current_time += quantum + overload
         current_process.duration -= quantum
         current_process.deadline -= quantum
         # If the process isnt finished, we add it do the end of queue
-        ready_queue.append(current_process)
+        ready_queue.put(current_process)
       
 
   def draw_processes_labels(self):
