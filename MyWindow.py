@@ -83,7 +83,7 @@ class MyWindow(pyglet.window.Window):
         self.addprocess()
         continue
       
-      if widget.is_clicked(x,y) :
+      if widget.is_clicked(x,y):
         self.window = widget.texto
       
     for widget in self.editaveis:
@@ -123,6 +123,7 @@ class MyWindow(pyglet.window.Window):
 
       self.deadlineprocesso = int(self.deadline.valor)
 
+      # Adjust the time to pixels units
       self.processes.append(Process(self.contagem,self.duracaoprocesso * self.pixels_time_ratio,self.tempochegadaprocesso * self.pixels_time_ratio,self.deadlineprocesso * self.pixels_time_ratio))
       
       self.contagem += 1
@@ -150,7 +151,7 @@ class MyWindow(pyglet.window.Window):
     pyglet.graphics.draw(2, pyglet.gl.GL_LINES,
                           # Extend line across window width
                           ('v2f', [50, 50, self.width - 50, 50]),
-                          # Set line color to black
+                          # # Set line color to black
                           ('c3B', (0, 0, 0, 0, 0, 0))
                           )
 
@@ -184,8 +185,6 @@ class MyWindow(pyglet.window.Window):
     prev_end = 50  # Set the initial x-position to the beginning of the x-axis line
     
     for i, process in enumerate(self.processes):
-      print(process.duration / self.pixels_time_ratio) 
-      # process_duration_pixels = process.duration * self.pixels_time_ratio
 
       rectangle = Rectangle(x=prev_end, y=50 + i * 50, desired_width= process.duration,width=0, height=HEIGHT,color=(0, 255, 0), id='P'+str(process.id), nature = "process", batch=self.batch)
 
@@ -250,8 +249,8 @@ class MyWindow(pyglet.window.Window):
         current_process.duration -= quantum
         ready_queue.append(current_process)
    
-  def scheduling_EDF(self, quantum = 20,overload = 10):
-     
+  def scheduling_EDF(self,overload = 20):
+    quantum = int(self.quantum.valor)
     ready_queue = deque()
     current_time = 0 
     total_processes = len(self.processes)
@@ -278,7 +277,7 @@ class MyWindow(pyglet.window.Window):
       current_process = ready_queue.popleft()
 
       if current_process.deadline > current_time:
-        # Draw Deadline burst 105,105,105
+        # Draw Deadline burst 
         pass
       
       if current_process.duration <= quantum:
@@ -331,7 +330,6 @@ class MyWindow(pyglet.window.Window):
  
   def on_draw(self):
     self.clear()
-    print(self.window)
     
     if self.window == "Menu":
       self.draw_menu()
