@@ -5,6 +5,7 @@ from Process import Process
 from src.Rectangle import Rectangle
 from src.botoes.botao_main import BotaoInput,Widget
 from collections import deque
+from quadradosprocessos import ProcessSquare
 import queue
 
 HEIGHT = 40
@@ -14,6 +15,10 @@ class MyWindow(pyglet.window.Window):
     # self.processes = [Process(1,5,5,4),Process(2,5,1,3),Process(3,5,5,6),Process(4,10,1,5)]
     self.processes = []
     self.window = "Menu"
+    self.x_square = 25
+    self.squares = []
+    self.y_square = 400
+    self.squareIndex = 0
     
     """
       Gantt Chart
@@ -126,8 +131,11 @@ class MyWindow(pyglet.window.Window):
       # Adjust the time to pixels units
       self.processes.append(Process(self.contagem,self.duracaoprocesso * self.pixels_time_ratio,self.tempochegadaprocesso * self.pixels_time_ratio,self.deadlineprocesso * self.pixels_time_ratio))
       
+      square = ProcessSquare(self.x_square, self.y_square, 200, Process(self.contagem,self.duracaoprocesso,self.tempochegadaprocesso,self.deadlineprocesso))
+      self.squares.append(square)
+      self.x_square += 250
       self.contagem += 1
-      print(self.processes)
+      
     else:
       print("Atributos não preenchidos corretamente!")
 
@@ -183,8 +191,8 @@ class MyWindow(pyglet.window.Window):
   def scheduling_FIFO(self):
     
     self.processes.sort(key=lambda p: p.arrival_time)
-    prev_end = 50  # Set the initial x-position to the beginning of the x-axis line
-    
+    prev_end = 50 + self.processes[0].arrival_time # Set the initial x-position to the beginning of the x-axis line
+
     for i, process in enumerate(self.processes):
 
       rectangle = Rectangle(x=prev_end, y=50 + i * 50, desired_width= process.duration,width=0, height=HEIGHT,color=(0, 255, 0), id='P'+str(process.id), nature = "process", batch=self.batch)
@@ -195,14 +203,42 @@ class MyWindow(pyglet.window.Window):
     
   
   def scheduling_SJF(self):
-    
-    self.processes.sort(key = lambda p: (p.arrival_time,p.duration))
-    return self.scheduling_FIFO()
+    current_time = 0
+    next_process_index = 0
+    total_processes = len(self.processes)
+    ready_queue = [] 
+    completed_processes = 0
+    prev_end = 50
+    self.processes.sort(key = lambda p: p.arrival_time)
+
+    y_rects_positions= [50*i for i in range(1,len(self.processes)+1)]
+
+    while completed_processes < total_processes:
+      for i in range(next_process_index, total_processes):
+        if self.processes[i].arrival_time <= current_time:
+          ready_queue.append(self.processes[i])
+          next_process_index = i + 1
+
+      if len(ready_queue) == 0:
+        current_time += 20
+        prev_end += 20
+        continue
+      # Garante que pegamos sempre o de menor duração
+      ready_queue.sort(key = lambda p: p.duration)
+      current_process = ready_queue.pop(0)
+
+      rectangle = Rectangle(x=prev_end, y=y_rects_positions[current_process.id-1], desired_width= current_process.duration,width=0, height=HEIGHT,color=(0, 255, 0), id='P'+str(current_process.id), nature = "process", batch=self.batch)
+
+      self.rects.append(rectangle)
+      prev_end += current_process.duration
+      current_time += current_process.duration
+      completed_processes += 1
+
     
 
   def scheduling_Round_Robin(self, overload = 20):
     quantum = int(self.quantum.valor) * self.pixels_time_ratio
-    ready_queue = queue.Pr()
+    ready_queue = deque()
     current_time = 0
     total_processes = len(self.processes)
     completed_processes = []    
@@ -223,7 +259,8 @@ class MyWindow(pyglet.window.Window):
       
       
       if len(ready_queue) == 0:
-        current_time += 1
+        prev_end += 20
+        current_time += 20
         continue
 
       current_process = ready_queue.popleft()
@@ -269,21 +306,19 @@ class MyWindow(pyglet.window.Window):
           ready_queue.put(self.processes[i])
           next_process_index = i + 1
       
-      if len(ready_queue) == 0:
-        # 1 second -> 20 pixels
+      if ready_queue.qsize() == 0:
         current_time += 20
-        prev_end += current_time
+        prev_end += 20
         continue
       
 
       current_process = ready_queue.get()
-
-      if current_process.deadline > current_time:
-        # Draw Deadline burst 
-        pass
       
       if current_process.duration <= quantum:
-        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0,desired_width=current_process.duration,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
+        if current_process.deadline < current_time:
+          process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0, desired_width=current_process.duration, height=HEIGHT, color=(211, 211, 211), id='P'+str(current_process.id), nature = "process") 
+        else:
+          process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0,desired_width=current_process.duration,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
 
         current_time += current_process.duration
         prev_end += current_process.duration
@@ -293,7 +328,10 @@ class MyWindow(pyglet.window.Window):
         self.rects.append(process_rectangle)
         
       else:
-        process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0, desired_width=quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
+        if current_process.deadline < current_time:
+          process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0, desired_width=quantum, height=HEIGHT, color=(211, 211, 211), id='P'+str(current_process.id), nature = "process") 
+        else:
+          process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0, desired_width=quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
 
         prev_end += quantum
         overload_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0,desired_width=overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
@@ -335,6 +373,9 @@ class MyWindow(pyglet.window.Window):
     
     if self.window == "Menu":
       self.draw_menu()
+      if self.add_process.is_clicked:
+        for square in self.squares:
+          square.draw()
     else:
         
       self.draw_graph()
