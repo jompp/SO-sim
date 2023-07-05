@@ -14,8 +14,10 @@ class MemoryWindow(pyglet.window.Window):
         # Set the background color to blue
         pyglet.gl.glClearColor(0, 0, 1, 1)
         self.clear()
-        self.RAM.draw()
-        self.DISK.draw()
+        self.RAM.draw_grid()
+        # self.RAM.draw_processes_pages()
+        self.RAM.draw_processes_pages()
+        self.DISK.draw_grid()
 
         
 
