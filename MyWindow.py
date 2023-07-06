@@ -1,12 +1,14 @@
 import pyglet
 from pyglet import gl
 from pathlib import Path
+from collections import deque
+import queue
 from Process import Process
 from src.Rectangle import Rectangle
 from src.botoes.botao_main import BotaoInput,Widget
-from collections import deque
 from quadradosprocessos import ProcessSquare
-import queue
+# from MemoryWindow import MemoryWindow
+from Grid import Grid
 
 HEIGHT = 40
 class MyWindow(pyglet.window.Window):
@@ -19,16 +21,24 @@ class MyWindow(pyglet.window.Window):
     self.squares = []
     self.y_square = 400
     self.squareIndex = 0
-    
+
     """
       Gantt Chart
     """
     self.batch = pyglet.graphics.Batch()
     self.rects = []
     self.current_index = 0
-    self.speed = 0.2
+    self.speed = 0.5
     self.turnaround = 0
     self.pixels_time_ratio = 20
+
+    """
+      Memoria
+    """
+    # Na tela do gantt teremos dois grids, um de disco e outro de RAM
+    self.ram = Grid(memory="RAM")
+    self.disk = Grid(memory="Disk")
+
     """
       Menu
     """
@@ -194,7 +204,8 @@ class MyWindow(pyglet.window.Window):
     prev_end = 50 + self.processes[0].arrival_time # Set the initial x-position to the beginning of the x-axis line
 
     for i, process in enumerate(self.processes):
-
+      # Antes de executar o algoritmo, precisamos alocar ele na memoria e garantir q tds as paginas estão la 
+  
       rectangle = Rectangle(x=prev_end, y=50 + i * 50, desired_width= process.duration,width=0, height=HEIGHT,color=(0, 255, 0), id='P'+str(process.id), nature = "process", batch=self.batch)
 
       self.rects.append(rectangle)
@@ -380,8 +391,12 @@ class MyWindow(pyglet.window.Window):
         
       self.draw_graph()
       self.draw_processes_labels()
+      self.ram.draw_grid()
+      self.disk.draw_grid()
 
     if self.window == "FIFO":
+      
+      self.ram.draw_process_pages(self.processes[0])
       self.scheduling_FIFO()
       self.batch.draw()
       self.start_animation()
@@ -401,6 +416,9 @@ class MyWindow(pyglet.window.Window):
       self.start_animation()
 
   def start_animation(self):
+
+    # for rect in self.rects:
+    #   pyglet.clock.schedule_interval(rect.update, 1/60)
 
     pyglet.clock.schedule_interval(self.update, 1/60)  # Update the animation 60 times per second
 

@@ -3,9 +3,8 @@ import pyglet
 from Process import Process
 class Grid:
   def __init__(self, memory):
-    self.square_size = 50
+    self.square_size = 40
     self.font_size = int(self.square_size * 0.4)
-    self.processes = [Process(1,4,0,0,2),Process(2,2,2,0,5),Process(3,1,3,0,1)]
     self.border_size = 2
     if memory == "RAM":
       self.label_text = "RAM"
@@ -22,10 +21,10 @@ class Grid:
       self.grid_x = (1366 - self.grid_width) // 2 - 350
     
     self.grid_height = self.num_rows * self.square_size
-    self.grid_y = (768 - self.grid_height) // 2
+    self.grid_y = ((768 - self.grid_height) // 2) + 150 
 
     # Nessa matriz temos em cada posicao o id do processo alocado
-    self.pages_allocation = [[0]*self.num_cols]*self.num_rows
+    self.pages_allocation = [[0] * self.num_cols for _ in range(self.num_rows)]
     self.processes_pages_status ={}
   def draw_grid(self):
 
@@ -34,8 +33,9 @@ class Grid:
         font_name='Arial',
         font_size=24,
         x=self.grid_x + self.grid_width//2,  # Center the label horizontally
-        y=self.grid_y + self.grid_height + 50,
-        anchor_x='center'
+        y=self.grid_y + self.grid_height + 5,
+        anchor_x='center',
+        color=(0, 0, 0, 255) 
     )
     label.draw()
 
@@ -97,28 +97,40 @@ class Grid:
   def pagination_FIFO(self):
     pass
 
-  def draw_processes_pages(self):
-    self.processes.sort(key = lambda p: p.arrival_time)
+  def pagination_LRU(self):
+    pass
+
+  def draw_process_pages(self, current_process):
 
     # Um processo é executado somente se tds as pags estiverem na ram
-    for process in self.processes:
-      for page in range(process.pages):
+    for page in range(current_process.pages):
+      # Se não conseguimos alocar uma pag do processo precisamos fazer uma paginação
+      if not self.find_page_address(current_process.id):
+        # chama algum algoritmo de paginação
+        pass
+    
+  def draw_processes_pages(self, processes):
+
+    # Um processo é executado somente se tds as pags estiverem na ram
+
+    for current_process in processes:
+      for page in range(current_process.pages):
         # Se não conseguimos alocar uma pag do processo precisamos fazer uma paginação
-        if not self.find_page_address(process.id):
+        if not self.find_page_address(current_process.id):
           # chama algum algoritmo de paginação
           pass
-      
   def find_page_address(self,process_id):
-      for i in range(0,self.num_rows):
-        for j in range(0,self.num_cols):
+    for i in range(self.num_rows):
+      for j in range(self.num_cols):     
+        # se for 0 significa que n tem paginas alocadas na posicao [i][j]
+        # correção por causa da indexação da matriz desenhada com matriz do python
+        if not self.pages_allocation[abs(i - (self.num_rows-1))][j]:
+          self.allocate_page(process_id,i,j)
+          self.pages_allocation[abs(i - (self.num_rows-1))][j] = process_id
           
-          # se for 0 significa que n tem paginas alocadas na posicao [i][j]
-          if not self.pages_allocation[i][j]:
-            self.allocate_page(process_id,i,j)
-            self.pages_allocation[i][j] = process_id
-            return True
-
-      return False
+          return True
+  
+    return False
      
   def allocate_page(self,process_id, row, col):
     square_x = self.grid_x + col * self.square_size
