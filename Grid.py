@@ -23,11 +23,10 @@ class Grid:
     
     self.grid_height = self.num_rows * self.square_size
     self.grid_y = (768 - self.grid_height) // 2
-    self.hashTable = {}
-    for row in range(self.num_rows):
-      for col in range(self.num_cols):
-        self.hashTable[str((row,col))] = "True"
 
+    # Nessa matriz temos em cada posicao o id do processo alocado
+    self.pages_allocation = [[0]*self.num_cols]*self.num_rows
+    self.processes_pages_status ={}
   def draw_grid(self):
 
     label = pyglet.text.Label(
@@ -101,20 +100,27 @@ class Grid:
   def draw_processes_pages(self):
     self.processes.sort(key = lambda p: p.arrival_time)
 
+    # Um processo é executado somente se tds as pags estiverem na ram
     for process in self.processes:
       for page in range(process.pages):
-        self.find_page_address(process.id)
+        # Se não conseguimos alocar uma pag do processo precisamos fazer uma paginação
+        if not self.find_page_address(process.id):
+          # chama algum algoritmo de paginação
+          pass
       
   def find_page_address(self,process_id):
-      for i in range(self.num_rows-1,-1,-1):
+      for i in range(0,self.num_rows):
         for j in range(0,self.num_cols):
           
-          if self.hashTable[str((i,j))] == "True":
-            self.allocate_process(process_id,i,j)
-            self.hashTable[str((i,j))] = "False"
-            return
-            
-  def allocate_process(self,process_id, row, col):
+          # se for 0 significa que n tem paginas alocadas na posicao [i][j]
+          if not self.pages_allocation[i][j]:
+            self.allocate_page(process_id,i,j)
+            self.pages_allocation[i][j] = process_id
+            return True
+
+      return False
+     
+  def allocate_page(self,process_id, row, col):
     square_x = self.grid_x + col * self.square_size
     square_y = self.grid_y + row * self.square_size
     
@@ -130,3 +136,5 @@ class Grid:
     )
     label.draw()
 
+  
+      
