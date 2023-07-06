@@ -45,15 +45,17 @@ class MyWindow(pyglet.window.Window):
     self.contagem = 1
     self.sobrecarga = Widget(1030,20,150,70,"Sobrecarga = 1",self.window)
 
-    self.execution_time = BotaoInput(30, 680, 250, 70, "Duração:")
+    self.execution_time = BotaoInput(30, 680, 200, 70, "Duração:")
 
     self.quantum = BotaoInput(830, 20, 150, 70, "Quantum:")
 
-    self.arrival_time = BotaoInput(305, 680, 250, 70, "Tempo de Chegada:")
+    self.arrival_time = BotaoInput(255, 680, 200, 70, "Tempo de Chegada:")
 
-    self.deadline = BotaoInput(580, 680, 250, 70, "Deadline:")
+    self.deadline = BotaoInput(480, 680, 200, 70, "Deadline:")
 
-    self.add_process = Widget(855 ,680,325,70,"Criar Processo",self.window)
+    self.pages = BotaoInput(705,680,200,70,"Páginas:")
+
+    self.add_process = Widget(1000 ,680,325,70,"Criar Processo",self.window)
 
     self.EDF = Widget(30,20,150,70,"EDF",self.window)
 
@@ -69,7 +71,7 @@ class MyWindow(pyglet.window.Window):
 
     self.widgets = [self.EDF,self.FIFO,self.SJF,self.ROUND_ROBIN,self.add_process,self.sobrecarga]
 
-    self.editaveis = [self.execution_time,self.quantum,self.arrival_time,self.deadline]
+    self.editaveis = [self.execution_time,self.quantum,self.arrival_time,self.deadline,self.pages]
 
     self.logo = pyglet.image.load(Path('sprites/ufba-png-1.png'))
 
@@ -77,13 +79,13 @@ class MyWindow(pyglet.window.Window):
 
     self.sprite2 = pyglet.sprite.Sprite(self.logo)
 
-    self.sprite.position = 1245,20
+    self.sprite.position = 1245,20,0
 
-    self.sprite2.position = 1245,670
+    #self.sprite2.position = 1245,670
 
     self.sprite.scale = 0.2
 
-    self.sprite2.scale = 0.2
+    #self.sprite2.scale = 0.2
 
     self.linhasup = pyglet.shapes.BorderedRectangle(2,635, self.width, 20, color=(128,0,0), border_color=(255, 255, 255))
 
@@ -126,29 +128,32 @@ class MyWindow(pyglet.window.Window):
     self.linhasup.draw()
     self.linhainf.draw()
     self.sprite.draw()
-    self.sprite2.draw()
+    #self.sprite2.draw()
   
   def addprocess(self):
-         
-    if self.execution_time.label.text != "" and self.deadline.label.text != "" and self.arrival_time.label.text != "":
+    if self.contagem < 6:    
+      if self.execution_time.label.text != "" and self.deadline.label.text != "" and self.arrival_time.label.text != "" and self.pages.label.text != "":
 
-      self.duracaoprocesso = int(self.execution_time.valor)
+        self.duracaoprocesso = int(self.execution_time.valor)
 
-      self.tempochegadaprocesso = int(self.arrival_time.valor)
+        self.tempochegadaprocesso = int(self.arrival_time.valor)
 
-      self.deadlineprocesso = int(self.deadline.valor)
+        self.deadlineprocesso = int(self.deadline.valor)
 
-      # Adjust the time to pixels units
-      self.processes.append(Process(self.contagem,self.duracaoprocesso * self.pixels_time_ratio,self.tempochegadaprocesso * self.pixels_time_ratio,self.deadlineprocesso * self.pixels_time_ratio))
+        self.pagesprocesso = int(self.pages.valor)
+
+        # Adjust the time to pixels units
+        self.processes.append(Process(self.contagem,self.duracaoprocesso * self.pixels_time_ratio,self.tempochegadaprocesso * self.pixels_time_ratio,self.deadlineprocesso * self.pixels_time_ratio,self.pagesprocesso))
       
-      square = ProcessSquare(self.x_square, self.y_square, 200, Process(self.contagem,self.duracaoprocesso,self.tempochegadaprocesso,self.deadlineprocesso))
-      self.squares.append(square)
-      self.x_square += 250
-      self.contagem += 1
+        square = ProcessSquare(self.x_square, self.y_square, 200, Process(self.contagem,self.duracaoprocesso,self.tempochegadaprocesso,self.deadlineprocesso,self.pagesprocesso))
+        self.squares.append(square)
+        self.x_square += 250
+        self.contagem += 1
       
+      else:
+        print("Atributos não preenchidos corretamente!")
     else:
-      print("Atributos não preenchidos corretamente!")
-
+      print("Número máximo de processos atingido !")
       
   def update(self,dt):
     

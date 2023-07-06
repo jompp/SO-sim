@@ -1,11 +1,12 @@
 import pyglet
 
 class Process:
-    def __init__(self, id, duration_time, arrival_time, deadline):
+    def __init__(self, id, duration_time, arrival_time, deadline,pages):
         self.id = id
         self.duration_time = duration_time
         self.arrival_time = arrival_time
         self.deadline = deadline
+        self.pages = pages
 
 class ProcessSquare:
     def __init__(self, x, y, size, process):
@@ -18,11 +19,11 @@ class ProcessSquare:
         square = pyglet.shapes.BorderedRectangle(self.x, self.y, self.size, self.size, color=(128, 0, 0), border_color=(255, 255, 255))
         square.draw()
 
-        box_size = self.size // 4 - 10
+        box_size = self.size // 5 - 10
         box_x = self.x + 60
         box_y = self.y + 5
 
-        for i, key in enumerate(["duration", "arrival_time", "deadline", "id"]):
+        for i, key in enumerate(["pages","deadline", "arrival_time","duration", "id"]):
             box = pyglet.shapes.Rectangle(box_x + 60, box_y + i * (box_size + 10), box_size + 30, box_size, color=(255, 255, 255))
             box.draw()
 
