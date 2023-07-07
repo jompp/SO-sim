@@ -28,7 +28,8 @@ class MyWindow(pyglet.window.Window):
     """
     self.batch = pyglet.graphics.Batch()
     self.rects = []
-    self.current_index = 0
+    self.current_rect_index = 0
+    self.current_process_index = 0
     self.speed = 0.5
     self.turnaround = 0
     self.pixels_time_ratio = 20
@@ -155,13 +156,16 @@ class MyWindow(pyglet.window.Window):
       
   def update(self,dt):
     
-    rect = self.rects[self.current_index]
-
+    rect = self.rects[self.current_rect_index]
+    
     if rect.width < rect.desired_width:
       rect.width += self.speed
     else:
-      self.current_index += 1
-      if self.current_index >= len(self.rects):
+      self.current_rect_index += 1
+      if rect.nature == "process":
+        self.current_process_index += 1
+
+      if self.current_rect_index >= len(self.rects):
         pyglet.clock.unschedule(self.update)  # Stop the animation if all rectangles are drawn
 
   def draw_graph(self):
@@ -170,12 +174,6 @@ class MyWindow(pyglet.window.Window):
 
     # Draw x-axis line
  
-    # pyglet.graphics.draw(2, pyglet.gl.GL_LINES,
-    #                       # Extend line across window width
-    #                       ('v2f', [50, 50, self.width - 50, 50]),
-    #                       # # Set line color to black
-    #                       ('c3B', (0, 0, 0, 0, 0, 0))
-    #                       )
     line = pyglet.shapes.Rectangle(50, 48, 1265, 2, color=(0, 0, 0))
     line.draw()
 
@@ -289,6 +287,7 @@ class MyWindow(pyglet.window.Window):
       self.processes_right_order.append(current_process)
       if current_process.duration <= quantum:
         process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0,desired_width=current_process.duration,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
+
         current_time += current_process.duration
         prev_end += current_process.duration
         current_process.duration = 0
@@ -299,7 +298,7 @@ class MyWindow(pyglet.window.Window):
         process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0, desired_width=quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
 
         prev_end += quantum
-        overload_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0,desired_width=overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
+        overload_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0,desired_width=overload, height=HEIGHT, color = (255,0,0),id = "", nature = "overload")
         prev_end += overload
         self.rects.append(process_rectangle)
         self.rects.append(overload_rectangle)
@@ -361,7 +360,7 @@ class MyWindow(pyglet.window.Window):
           process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0, desired_width=quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
 
         prev_end += quantum
-        overload_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0,desired_width=overload, height=HEIGHT, color = (255,0,0),id = "", nature = "quantum")
+        overload_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0,desired_width=overload, height=HEIGHT, color = (255,0,0),id = "", nature = "overload")
         prev_end += overload
         self.rects.append(process_rectangle)
         self.rects.append(overload_rectangle)
@@ -411,25 +410,25 @@ class MyWindow(pyglet.window.Window):
       self.disk.draw_grid()
 
     if self.window == "FIFO":
-      self.ram.draw_processes_pages(self.processes_right_order)
       self.scheduling_FIFO()
+      self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1)
       self.batch.draw()
       self.start_animation()
     elif self.window == "SJF":
-      self.ram.draw_processes_pages(self.processes_right_order)
       self.scheduling_SJF()
+      self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1)
       self.batch.draw()
       self.start_animation()
     
     elif self.window == "Round Robin":
-      self.ram.draw_processes_pages(self.processes_right_order)
       self.scheduling_Round_Robin()
+      self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1)
       self.batch.draw()
       self.start_animation()
     
     elif self.window == "EDF":
-      self.ram.draw_processes_pages(self.processes_right_order)
       self.scheduling_EDF()
+      self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1)
       self.batch.draw()
       self.start_animation()
 

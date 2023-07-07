@@ -25,7 +25,9 @@ class Grid:
 
     # Nessa matriz temos em cada posicao o id do processo alocado
     # self.pages_allocation = [[0] * self.num_cols for _ in range(self.num_rows)]
-    self.processes_pages_status = False
+    self.pagination_FIFO_replacement_row = 0
+    self.pagination_FIFO_replacement_col = 0
+
   def draw_grid(self):
 
     label = pyglet.text.Label(
@@ -94,20 +96,33 @@ class Grid:
         small_label.draw()
 
 
-  def pagination_FIFO(self):
-    pass
+  def pagination_FIFO(self, current_process,processes_pagination_status,pages_allocation):
+    # Precisamos ver quantas pags do current_process estao faltando na memora
+    missing_pages = current_process.pages - processes_pagination_status[current_process.id]
+
+    # Para cada pag faltando precisamos alocar ela segundo o fifo
+    for page in range(missing_pages):
+      self.allocate_page(current_process.id,self.pagination_FIFO_replacement_row,self.pagination_FIFO_replacement_col)
+
+      removed_process_page = pages_allocation[abs(self.pagination_FIFO_replacement_row - (self.num_rows-1))][self.pagination_FIFO_replacement_col]
+
+      # Remove a pag que estava na posicao e adiciona a do current_process
+      processes_pagination_status[removed_process_page] -= 1
+      pages_allocation[abs(self.pagination_FIFO_replacement_row - (self.num_rows-1))][self.pagination_FIFO_replacement_row] = current_process.id
+      processes_pagination_status[current_process.id] += 1 
+
 
   def pagination_LRU(self):
     pass
     
-  def draw_processes_pages(self, processes):
+  def draw_processes_pages(self, processes, current_index):
     
-    total_processes = len(processes)
+    total_processes = len(processes[:current_index])
     processes_pagination_status = [0] * (total_processes+1)
     pages_allocation = [[0] * self.num_cols for _ in range(self.num_rows)]
-    for current_process in processes:
-      # se ja alocamos as paginas desse processo não queremos alocar denovo
-      if processes_pagination_status[current_process.id]:
+    for current_process in processes[:current_index]:
+      # se ja alocamos tds as paginas desse processo não queremos alocar denovo
+      if processes_pagination_status[current_process.id] == current_process.pages:
         continue
 
       for page in range(current_process.pages):
@@ -121,7 +136,7 @@ class Grid:
     for i in range(self.num_rows):
       for j in range(self.num_cols):     
         # se for 0 significa que n tem paginas alocadas na posicao [i][j]
-        # correção por causa da indexação da matriz desenhada com matriz do python
+        # abs(i - (self.num_rows-1)) correção por causa da indexação da matriz desenhada com matriz do python
         if not pages_allocation[abs(i - (self.num_rows-1))][j]:
           self.allocate_page(process_id,i,j)
           pages_allocation[abs(i - (self.num_rows-1))][j] = process_id
@@ -135,14 +150,14 @@ class Grid:
     square_y = self.grid_y + row * self.square_size
     
     label = pyglet.text.Label(
-        str(process_id),
-        font_name='Arial',
-        font_size=self.font_size,
-        x=square_x + self.square_size // 2,
-        y=square_y + self.square_size // 2,
-        anchor_x='center',
-        anchor_y='center',
-        color=(0, 0, 0, 255)  # Set the text color to black
+      str(process_id),
+      font_name='Arial',
+      font_size=self.font_size,
+      x=square_x + self.square_size // 2,
+      y=square_y + self.square_size // 2,
+      anchor_x='center',
+      anchor_y='center',
+      color=(0, 0, 0, 255)  # Set the text color to black
     )
     label.draw()
 
