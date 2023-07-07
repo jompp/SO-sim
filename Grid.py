@@ -24,8 +24,8 @@ class Grid:
     self.grid_y = ((768 - self.grid_height) // 2) + 150 
 
     # Nessa matriz temos em cada posicao o id do processo alocado
-    self.pages_allocation = [[0] * self.num_cols for _ in range(self.num_rows)]
-    self.processes_pages_status ={}
+    # self.pages_allocation = [[0] * self.num_cols for _ in range(self.num_rows)]
+    self.processes_pages_status = False
   def draw_grid(self):
 
     label = pyglet.text.Label(
@@ -99,35 +99,33 @@ class Grid:
 
   def pagination_LRU(self):
     pass
-
-  def draw_process_pages(self, current_process):
-
-    # Um processo é executado somente se tds as pags estiverem na ram
-    for page in range(current_process.pages):
-      # Se não conseguimos alocar uma pag do processo precisamos fazer uma paginação
-      if not self.find_page_address(current_process.id):
-        # chama algum algoritmo de paginação
-        pass
     
   def draw_processes_pages(self, processes):
-
-    # Um processo é executado somente se tds as pags estiverem na ram
-
+    
+    total_processes = len(processes)
+    processes_pagination_status = [0] * (total_processes+1)
+    pages_allocation = [[0] * self.num_cols for _ in range(self.num_rows)]
     for current_process in processes:
+      # se ja alocamos as paginas desse processo não queremos alocar denovo
+      if processes_pagination_status[current_process.id]:
+        continue
+
       for page in range(current_process.pages):
         # Se não conseguimos alocar uma pag do processo precisamos fazer uma paginação
-        if not self.find_page_address(current_process.id):
+        if not self.find_page_address(current_process.id,pages_allocation,processes_pagination_status):
           # chama algum algoritmo de paginação
           pass
-  def find_page_address(self,process_id):
+
+
+  def find_page_address(self,process_id,pages_allocation,processes_pagination_status):
     for i in range(self.num_rows):
       for j in range(self.num_cols):     
         # se for 0 significa que n tem paginas alocadas na posicao [i][j]
         # correção por causa da indexação da matriz desenhada com matriz do python
-        if not self.pages_allocation[abs(i - (self.num_rows-1))][j]:
+        if not pages_allocation[abs(i - (self.num_rows-1))][j]:
           self.allocate_page(process_id,i,j)
-          self.pages_allocation[abs(i - (self.num_rows-1))][j] = process_id
-          
+          pages_allocation[abs(i - (self.num_rows-1))][j] = process_id
+          processes_pagination_status[process_id] += 1
           return True
   
     return False

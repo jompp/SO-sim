@@ -16,6 +16,7 @@ class MyWindow(pyglet.window.Window):
     super().__init__(width=1366, height=768)
     # self.processes = [Process(1,5,5,4),Process(2,5,1,3),Process(3,5,5,6),Process(4,10,1,5)]
     self.processes = []
+    self.processes_right_order = []
     self.window = "Menu"
     self.x_square = 25
     self.squares = []
@@ -79,13 +80,10 @@ class MyWindow(pyglet.window.Window):
 
     self.sprite2 = pyglet.sprite.Sprite(self.logo)
 
-    self.sprite.position = 1245,20,0
-
-    #self.sprite2.position = 1245,670
+    self.sprite.position = 1245,20
 
     self.sprite.scale = 0.2
 
-    #self.sprite2.scale = 0.2
 
     self.linhasup = pyglet.shapes.BorderedRectangle(2,635, self.width, 20, color=(128,0,0), border_color=(255, 255, 255))
 
@@ -171,13 +169,15 @@ class MyWindow(pyglet.window.Window):
     self.clear()
 
     # Draw x-axis line
-    pyglet.graphics.draw(2, pyglet.gl.GL_LINES,
-                          # Extend line across window width
-                          ('v2f', [50, 50, self.width - 50, 50]),
-                          # # Set line color to black
-                          ('c3B', (0, 0, 0, 0, 0, 0))
-                          )
-
+ 
+    # pyglet.graphics.draw(2, pyglet.gl.GL_LINES,
+    #                       # Extend line across window width
+    #                       ('v2f', [50, 50, self.width - 50, 50]),
+    #                       # # Set line color to black
+    #                       ('c3B', (0, 0, 0, 0, 0, 0))
+    #                       )
+    line = pyglet.shapes.Rectangle(50, 48, 1265, 2, color=(0, 0, 0))
+    line.draw()
 
     # Draw x-axis labels
     label_interval = 5
@@ -206,6 +206,7 @@ class MyWindow(pyglet.window.Window):
   def scheduling_FIFO(self):
     
     self.processes.sort(key=lambda p: p.arrival_time)
+    self.processes_right_order = self.processes
     prev_end = 50 + self.processes[0].arrival_time # Set the initial x-position to the beginning of the x-axis line
 
     for i, process in enumerate(self.processes):
@@ -224,6 +225,7 @@ class MyWindow(pyglet.window.Window):
     total_processes = len(self.processes)
     ready_queue = [] 
     completed_processes = 0
+    right_order = []
     prev_end = 50
     self.processes.sort(key = lambda p: p.arrival_time)
 
@@ -242,7 +244,8 @@ class MyWindow(pyglet.window.Window):
       # Garante que pegamos sempre o de menor duração
       ready_queue.sort(key = lambda p: p.duration)
       current_process = ready_queue.pop(0)
-
+      right_order.append(current_process)
+      
       rectangle = Rectangle(x=prev_end, y=y_rects_positions[current_process.id-1], desired_width= current_process.duration,width=0, height=HEIGHT,color=(0, 255, 0), id='P'+str(current_process.id), nature = "process", batch=self.batch)
 
       self.rects.append(rectangle)
@@ -250,14 +253,15 @@ class MyWindow(pyglet.window.Window):
       current_time += current_process.duration
       completed_processes += 1
 
-    
+    self.processes_right_order = right_order
 
   def scheduling_Round_Robin(self, overload = 20):
     quantum = int(self.quantum.valor) * self.pixels_time_ratio
     ready_queue = deque()
     current_time = 0
     total_processes = len(self.processes)
-    completed_processes = []    
+    completed_processes = [] 
+    right_order = []   
     self.processes.sort(key= lambda p: p.arrival_time)
  
     y_rects_positions= [50*i for i in range(1,len(self.processes)+1)]
@@ -280,7 +284,9 @@ class MyWindow(pyglet.window.Window):
         continue
 
       current_process = ready_queue.popleft()
+      right_order.append(current_process)
 
+      self.processes_right_order.append(current_process)
       if current_process.duration <= quantum:
         process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0,desired_width=current_process.duration,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
         current_time += current_process.duration
@@ -302,13 +308,16 @@ class MyWindow(pyglet.window.Window):
         current_time += quantum + overload
         current_process.duration -= quantum
         ready_queue.append(current_process)
-   
+    
+    self.processes_right_order = right_order
+
   def scheduling_EDF(self,overload = 20):
     quantum = int(self.quantum.valor) * self.pixels_time_ratio
     ready_queue = queue.PriorityQueue()
     current_time = 0 
     total_processes = len(self.processes)
     completed_processes = []
+    right_order  = []
     self.processes.sort(key = lambda p: (p.arrival_time,p.deadline))
     
     y_rects_positions= [50*i for i in range(1,len(self.processes)+1)]
@@ -329,7 +338,9 @@ class MyWindow(pyglet.window.Window):
       
 
       current_process = ready_queue.get()
-      
+      right_order.append(current_process)
+
+      self.processes_right_order.append(current_process)
       if current_process.duration <= quantum:
         if current_process.deadline < current_time:
           process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0, desired_width=current_process.duration, height=HEIGHT, color=(211, 211, 211), id='P'+str(current_process.id), nature = "process") 
@@ -361,13 +372,13 @@ class MyWindow(pyglet.window.Window):
         current_process.deadline -= quantum
         # If the process isnt finished, we add it do the end of queue
         ready_queue.put(current_process)
-      
+
+    self.processes_right_order = right_order
 
   def draw_processes_labels(self):
     for i,rect in enumerate(self.rects):
       rect.draw()
 
-      
       if rect.nature == "process":
 
         label = rect.id
@@ -400,30 +411,30 @@ class MyWindow(pyglet.window.Window):
       self.disk.draw_grid()
 
     if self.window == "FIFO":
-      
-      self.ram.draw_process_pages(self.processes[0])
+      self.ram.draw_processes_pages(self.processes_right_order)
       self.scheduling_FIFO()
       self.batch.draw()
       self.start_animation()
     elif self.window == "SJF":
+      self.ram.draw_processes_pages(self.processes_right_order)
       self.scheduling_SJF()
       self.batch.draw()
       self.start_animation()
     
     elif self.window == "Round Robin":
+      self.ram.draw_processes_pages(self.processes_right_order)
       self.scheduling_Round_Robin()
       self.batch.draw()
       self.start_animation()
     
     elif self.window == "EDF":
+      self.ram.draw_processes_pages(self.processes_right_order)
       self.scheduling_EDF()
       self.batch.draw()
       self.start_animation()
 
   def start_animation(self):
 
-    # for rect in self.rects:
-    #   pyglet.clock.schedule_interval(rect.update, 1/60)
 
     pyglet.clock.schedule_interval(self.update, 1/60)  # Update the animation 60 times per second
 
