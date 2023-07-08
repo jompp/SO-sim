@@ -205,11 +205,15 @@ class MyWindow(pyglet.window.Window):
     
     self.processes.sort(key=lambda p: p.arrival_time)
     self.processes_right_order = self.processes
-    prev_end = 50 + self.processes[0].arrival_time # Set the initial x-position to the beginning of the x-axis line
+    prev_end = 50  # Set the initial x-position to the beginning of the x-axis line
 
     for i, process in enumerate(self.processes):
-      # Antes de executar o algoritmo, precisamos alocar ele na memoria e garantir q tds as paginas estão la 
-  
+      # Antes de executar o algoritmo, precisamos alocar ele na memoria e garantir q tds as paginas estão la
+       
+      # Verifica se o processo não chegou na fila de prontos no tempo em que o ultimo acabou 
+      if prev_end - 50 < process.arrival_time:
+        prev_end = process.arrival_time + 50
+
       rectangle = Rectangle(x=prev_end, y=50 + i * 50, desired_width= process.duration,width=0, height=HEIGHT,color=(0, 255, 0), id='P'+str(process.id), nature = "process", batch=self.batch)
 
       self.rects.append(rectangle)
