@@ -111,7 +111,6 @@ class Grid:
     x=border_x, y=border_y, width=border_width, height=border_height, color=border_color
     ).draw()
 
-   
 
     # draw square
     square = pyglet.shapes.Rectangle(
@@ -133,14 +132,20 @@ class Grid:
       anchor_y='top',
       color=(0, 0, 0, 255)  # Set the text color to black
     ).draw()
+
     removed_process_page = pages_allocation[abs(row - (self.num_rows - 1))][col] 
     processes_pagination_status[removed_process_page] -= 1
 
   def pagination_FIFO(self, current_process,processes_pagination_status,pages_allocation,page_order):
-    
-    oldest_page = page_order.pop(0)
+    row,col = 0,0
 
-    row,col = oldest_page[0],oldest_page[1]
+    for i,past_page in enumerate(page_order):
+      row,col = past_page[0],past_page[1]
+
+      if pages_allocation[abs(row - (self.num_rows - 1))][col] != current_process.id:
+        page_order.pop(i)
+        break
+      
 
     # Remove a pag que estava na posicao e adiciona a do current_process
     self.desalocate_address(row,col,processes_pagination_status,pages_allocation)
@@ -150,11 +155,38 @@ class Grid:
     processes_pagination_status[current_process.id] += 1 
     page_order.append((row,col))
 
-  def pagination_LRU(self):
+  def pagination_LRU(self,current_process,processes_pagination_status,pages_allocation,page_order):
+    
+    # coloca no final da fila todas as pags do processo referenciado
+    i = 0
+    pages = 0
+    while pages < len(page_order):
+      pages += 1
+      row,col = page_order[i][0],page_order[i][1]
+
+      if pages_allocation[abs(row - (self.num_rows - 1))][col] == current_process.id:
+
+        referenced_page = page_order.pop(i)
+        page_order.append(referenced_page)
+      else:
+        i += 1
+      
+      
+
+    least_recently_used_page = page_order.pop(0)
+    row,col = least_recently_used_page[0],least_recently_used_page[1]
+    
+     # Remove a pag que estava na posicao e adiciona a do current_process
+    self.desalocate_address(row,col,processes_pagination_status,pages_allocation)
+
+    self.allocate_page(current_process.id,row,col)
+    pages_allocation[abs(row - (self.num_rows-1))][col] = current_process.id
+    processes_pagination_status[current_process.id] += 1 
+    page_order.append((row,col))
     pass
     
-  def draw_processes_pages(self, processes, current_index):
-    
+  def draw_processes_pages(self, processes, current_index, pagination_algorithm):
+
     page_order = []
     total_processes = max(processes[:current_index],key=lambda p: p.id).id
 
@@ -162,17 +194,34 @@ class Grid:
     pages_allocation = [[0] * self.num_cols for _ in range(self.num_rows)]
 
     for current_process in processes[:current_index]:
+
       # se ja alocamos tds as paginas desse processo não queremos alocar denovo
       if processes_pagination_status[current_process.id] == current_process.pages:
+        
+        # colocamos no final da fila as pags do processo referenciado
+        if pagination_algorithm == "LRU":
+          for i,page in enumerate(page_order):
+            row,col = page[0],page[1]
+
+            if pages_allocation[abs(row - (self.num_rows-1))][col] == current_process.id:
+              referenced_page = page_order.pop(i)
+              page_order.append(referenced_page)
+
         continue
-
-      for page in range(current_process.pages):
+      
+      # So queremos alocar as paginas que estao faltando
+      missing_pages = current_process.pages - processes_pagination_status[current_process.id]
+     
+      for _ in range(missing_pages):
         # Se não conseguimos alocar uma pag do processo precisamos fazer uma paginação
-        if not self.find_page_address(current_process.id,pages_allocation,processes_pagination_status,page_order):
-          # chama algum algoritmo de paginação
-          self.pagination_FIFO(current_process,processes_pagination_status,pages_allocation,page_order)
-          
 
+        if not self.find_page_address(current_process.id,pages_allocation,processes_pagination_status,page_order):
+            
+          # chama algum algoritmo de paginação
+          
+          # self.pagination_FIFO(current_process,processes_pagination_status,pages_allocation,page_order)
+          self.pagination_LRU(current_process,processes_pagination_status,pages_allocation,page_order)
+          
 
   def find_page_address(self,process_id,pages_allocation,processes_pagination_status,page_order):
     for i in range(self.num_rows):

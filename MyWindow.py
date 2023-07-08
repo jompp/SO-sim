@@ -33,6 +33,7 @@ class MyWindow(pyglet.window.Window):
     self.speed = 0.5
     self.turnaround = 0
     self.pixels_time_ratio = 20
+    self.window_update_counter = 1
 
     """
       Memoria
@@ -155,7 +156,7 @@ class MyWindow(pyglet.window.Window):
       print("Número máximo de processos atingido !")
       
   def update(self,dt):
-    
+    self.window_update_counter += 1
     rect = self.rects[self.current_rect_index]
     
     if rect.width < rect.desired_width:
@@ -255,7 +256,13 @@ class MyWindow(pyglet.window.Window):
       current_time += current_process.duration
       completed_processes += 1
 
-    self.processes_right_order = right_order
+    """"
+    Os algoritmos vao executar varias vezes, na primeira vez ele vai alterar as duracoes de cada processo, entao
+    so podemos pegar a ordem certa dos processos na primeira vez q ele executa, depois perdemos essa ordem
+    """
+    if self.window_update_counter == 1:
+      self.processes_right_order = right_order
+    
 
   def scheduling_Round_Robin(self, overload = 20):
     quantum = int(self.quantum.valor) * self.pixels_time_ratio
@@ -288,7 +295,6 @@ class MyWindow(pyglet.window.Window):
       current_process = ready_queue.popleft()
       right_order.append(current_process)
 
-      self.processes_right_order.append(current_process)
       if current_process.duration <= quantum:
         process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0,desired_width=current_process.duration,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
 
@@ -297,7 +303,7 @@ class MyWindow(pyglet.window.Window):
         current_process.duration = 0
         completed_processes.append(current_process)
         self.rects.append(process_rectangle)
-
+      
       else:
         process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0, desired_width=quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
 
@@ -307,12 +313,18 @@ class MyWindow(pyglet.window.Window):
         self.rects.append(process_rectangle)
         self.rects.append(overload_rectangle)
         
-        
         current_time += quantum + overload
         current_process.duration -= quantum
         ready_queue.append(current_process)
+        
+
+    """"
+    Os algoritmos vao executar varias vezes, na primeira vez ele vai alterar as duracoes de cada processo, entao
+    so podemos pegar a ordem certa dos processos na primeira vez q ele executa, depois perdemos essa order
+    """
+    if self.window_update_counter == 1:
+      self.processes_right_order = right_order
     
-    self.processes_right_order = right_order
 
   def scheduling_EDF(self,overload = 20):
     quantum = int(self.quantum.valor) * self.pixels_time_ratio
@@ -343,7 +355,6 @@ class MyWindow(pyglet.window.Window):
       current_process = ready_queue.get()
       right_order.append(current_process)
 
-      self.processes_right_order.append(current_process)
       if current_process.duration <= quantum:
         if current_process.deadline < current_time:
           process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0, desired_width=current_process.duration, height=HEIGHT, color=(211, 211, 211), id='P'+str(current_process.id), nature = "process") 
@@ -376,7 +387,13 @@ class MyWindow(pyglet.window.Window):
         # If the process isnt finished, we add it do the end of queue
         ready_queue.put(current_process)
 
-    self.processes_right_order = right_order
+    """"
+    Os algoritmos vao executar varias vezes, na primeira vez ele vai alterar as duracoes de cada processo, entao
+    so podemos pegar a ordem certa dos processos na primeira vez q ele executa, depois perdemos essa order
+    """
+    if self.window_update_counter == 1:
+      self.processes_right_order = right_order
+    
 
   def draw_processes_labels(self):
     for i,rect in enumerate(self.rects):
@@ -426,7 +443,7 @@ class MyWindow(pyglet.window.Window):
     
     elif self.window == "Round Robin":
       self.scheduling_Round_Robin()
-      self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1)
+      self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1,"LRU")
       self.batch.draw()
       self.start_animation()
     
