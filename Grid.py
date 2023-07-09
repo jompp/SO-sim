@@ -174,7 +174,7 @@ class Grid:
       else:
         i += 1
       pages += 1
-      
+
     least_recently_used_page = page_order.pop(0)
     row,col = least_recently_used_page[0],least_recently_used_page[1]
     
@@ -192,7 +192,7 @@ class Grid:
     page_order = []
     total_processes = max(processes[:current_index],key=lambda p: p.id).id
 
-    print("retangulo", current_index)
+    
     processes_pagination_status = [0] * (total_processes+1)
     pages_allocation = [[0] * self.num_cols for _ in range(self.num_rows)]
 
@@ -230,8 +230,7 @@ class Grid:
           
           # self.pagination_FIFO(current_process,processes_pagination_status,pages_allocation,page_order)
           self.pagination_LRU(current_process,processes_pagination_status,pages_allocation,page_order)
-    print(page_order)  
-    print("---------------") 
+    
 
   def find_page_address(self,process_id,pages_allocation,processes_pagination_status,page_order):
     for i in range(self.num_rows):
