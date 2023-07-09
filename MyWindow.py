@@ -13,14 +13,14 @@ from Grid import Grid
 HEIGHT = 40
 class MyWindow(pyglet.window.Window):
   def __init__(self, width, height):
-    super().__init__(width=1366, height=768)
+    super().__init__(width=1366, height=768,caption = "MENU")
     # self.processes = [Process(1,5,5,4),Process(2,5,1,3),Process(3,5,5,6),Process(4,10,1,5)]
     self.processes = []
     self.processes_right_order = []
     self.window = "Menu"
-    self.x_square = 25
+    self.x_square = 80
     self.squares = []
-    self.y_square = 400
+    self.y_square = 290
     self.squareIndex = 0
 
     """
@@ -46,33 +46,39 @@ class MyWindow(pyglet.window.Window):
       Menu
     """
     self.contagem = 1
-    self.sobrecarga = Widget(1030,20,150,70,"Sobrecarga = 1",self.window)
+    self.sobrecarga = Widget(1030,10,150,70,"Sobrecarga = 1",self.window)
 
-    self.execution_time = BotaoInput(30, 680, 200, 70, "Duração:")
+    self.execution_time = BotaoInput(30, 660, 150, 70, "Duração:")
 
-    self.quantum = BotaoInput(830, 20, 150, 70, "Quantum:")
+    self.quantum = BotaoInput(830, 10, 150, 70, "Quantum:")
 
-    self.arrival_time = BotaoInput(255, 680, 200, 70, "Tempo de Chegada:")
+    self.arrival_time = BotaoInput(205, 660, 150, 70, "Chegada:")
 
-    self.deadline = BotaoInput(480, 680, 200, 70, "Deadline:")
+    self.deadline = BotaoInput(390, 660, 150, 70, "Deadline:")
 
-    self.pages = BotaoInput(705,680,200,70,"Páginas:")
+    self.pages = BotaoInput(575,660,150,70,"Páginas:")
 
-    self.add_process = Widget(1000 ,680,325,70,"Criar Processo",self.window)
+    self.eraseprocesses = Widget(760 ,660,200,70,"Apagar Processos",self.window)
 
-    self.EDF = Widget(30,20,150,70,"EDF",self.window)
+    self.add_process = Widget(1000 ,660,325,70,"Criar Processo",self.window)
 
-    self.FIFO = Widget(230,20,150,70,"FIFO",self.window)
+    self.EDF = Widget(630,50,150,30,"EDF",self.window)
 
-    self.SJF = Widget(630,20,150,70,"SJF",self.window)
+    self.FIFO = Widget(430,50,150,30,"FIFO",self.window)
 
-    self.ROUND_ROBIN = Widget(430,20,150,70,"Round Robin",self.window)
+    self.SJF= Widget(630,10,150,30,"SJF",self.window)
+
+    self.LRUPAGE = Widget(25,10,150,70,"LRU",self.window)
+
+    self.FIFOPAGE = Widget(205,10,150,70,"FIFO",self.window)
+
+    self.ROUND_ROBIN = Widget(430,10,150,30,"Round Robin",self.window)
 
     self.fundo = pyglet.image.load(Path('sprites/fundomenu.jpg'))
 
     self.background = pyglet.sprite.Sprite(self.fundo)
 
-    self.widgets = [self.EDF,self.FIFO,self.SJF,self.ROUND_ROBIN,self.add_process,self.sobrecarga]
+    self.widgets = [self.EDF,self.FIFO,self.SJF,self.ROUND_ROBIN,self.add_process,self.sobrecarga,self.eraseprocesses,self.FIFOPAGE,self.LRUPAGE]
 
     self.editaveis = [self.execution_time,self.quantum,self.arrival_time,self.deadline,self.pages]
 
@@ -86,10 +92,25 @@ class MyWindow(pyglet.window.Window):
 
     self.sprite.scale = 0.2
 
+    self.linhasup = pyglet.shapes.Rectangle(2,600, self.width, 20, color=(128,0,0))
 
-    self.linhasup = pyglet.shapes.BorderedRectangle(2,635, self.width, 20, color=(128,0,0), border_color=(255, 255, 255))
+    self.linhainf = pyglet.shapes.Rectangle(2, self.height - 615, self.width, 20, color=(128,0,0))
 
-    self.linhainf = pyglet.shapes.BorderedRectangle(2, self.height - 650, self.width, 20, color=(128,0,0), border_color=(255, 255, 255))
+    self.linhaSep1 = pyglet.shapes.Rectangle(380,0, 30, self.height - 615, color=(128,0,0))
+
+    self.linhaSep2 = pyglet.shapes.Rectangle(790,0, 30, self.height - 615, color=(128,0,0))
+
+    self.back2menu = Widget(630,60,150,30,"MENU",self.window)
+    
+    self.paginationlabel = pyglet.text.Label("ESCALONAMENTO DE PÁGINA",font_name= "Times New Roman",font_size=18,
+                                          x=190, y= 140,
+                                          anchor_x='center', anchor_y='top', color=(128, 0, 0, 255))
+    
+    self.schedulingLabel = pyglet.text.Label("ESCALONAMENTO DE PROCESSO",font_name= "Times New Roman",font_size=18,
+                                          x=600, y= 140,
+                                          anchor_x='center', anchor_y='top', color=(128, 0, 0, 255))
+    
+
 
   def on_mouse_release(self, x, y, button, modifiers):
     for widget in self.widgets:
@@ -98,6 +119,20 @@ class MyWindow(pyglet.window.Window):
 
       if widget == self.add_process and widget.is_clicked(x,y):
         self.addprocess()
+        continue
+
+      if widget == self.eraseprocesses and widget.is_clicked(x,y):
+        self.apagarprocessos()
+        continue
+      
+      if widget == self.LRUPAGE and widget.is_clicked(x,y):
+        self.pagination = "LRU"
+        print("Algoritmo de Paginação: " + self.pagination)
+        continue
+
+      if widget == self.FIFOPAGE and widget.is_clicked(x,y):
+        self.pagination = "FIFO"
+        print("Algoritmo de Paginação: " + self.pagination)
         continue
       
       if widget.is_clicked(x,y):
@@ -128,7 +163,11 @@ class MyWindow(pyglet.window.Window):
     self.linhasup.draw()
     self.linhainf.draw()
     self.sprite.draw()
-    #self.sprite2.draw()
+    self.linhaSep1.draw()
+    self.linhaSep2.draw()
+    self.paginationlabel.draw()
+    self.schedulingLabel.draw()
+
   
   def addprocess(self):
     if self.contagem < 6:    
@@ -155,6 +194,12 @@ class MyWindow(pyglet.window.Window):
     else:
       print("Número máximo de processos atingido !")
       
+  def apagarprocessos(self):
+      self.processes.clear()
+      self.squares.clear()
+      self.x_square = 80
+      self.contagem = 1
+
   def update(self,dt):
     self.window_update_counter += 1
     rect = self.rects[self.current_rect_index]
@@ -432,24 +477,24 @@ class MyWindow(pyglet.window.Window):
 
     if self.window == "FIFO":
       self.scheduling_FIFO()
-      self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1)
+      self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1,self.pagination)
       self.batch.draw()
       self.start_animation()
     elif self.window == "SJF":
       self.scheduling_SJF()
-      self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1)
+      self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1,self.pagination)
       self.batch.draw()
       self.start_animation()
     
     elif self.window == "Round Robin":
       self.scheduling_Round_Robin()
-      self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1,"LRU")
+      self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1,self.pagination)
       self.batch.draw()
       self.start_animation()
     
     elif self.window == "EDF":
       self.scheduling_EDF()
-      self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1)
+      self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1,self.pagination)
       self.batch.draw()
       self.start_animation()
 
@@ -462,6 +507,7 @@ class MyWindow(pyglet.window.Window):
 
 
 screen = MyWindow(1920,1080)
+icon = pyglet.image.load(Path('sprites/blackjack_icon.png'))
+screen.set_icon(icon)
 
 pyglet.app.run()
-
