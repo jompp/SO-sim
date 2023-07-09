@@ -78,7 +78,11 @@ class MyWindow(pyglet.window.Window):
 
     self.background = pyglet.sprite.Sprite(self.fundo)
 
-    self.widgets = [self.EDF,self.FIFO,self.SJF,self.ROUND_ROBIN,self.add_process,self.sobrecarga,self.eraseprocesses,self.FIFOPAGE,self.LRUPAGE]
+    self.back2menu = Widget(630,60,150,30,"MENU",self.window)
+
+    self.widgets = [self.EDF,self.FIFO,self.SJF,self.ROUND_ROBIN,self.add_process,self.sobrecarga,self.eraseprocesses,self.FIFOPAGE,self.LRUPAGE,self.back2menu]
+
+    self.widgetsMenu = [self.EDF,self.FIFO,self.SJF,self.ROUND_ROBIN,self.add_process,self.sobrecarga,self.eraseprocesses,self.FIFOPAGE,self.LRUPAGE]
 
     self.editaveis = [self.execution_time,self.quantum,self.arrival_time,self.deadline,self.pages]
 
@@ -99,8 +103,6 @@ class MyWindow(pyglet.window.Window):
     self.linhaSep1 = pyglet.shapes.Rectangle(380,0, 30, self.height - 615, color=(128,0,0))
 
     self.linhaSep2 = pyglet.shapes.Rectangle(790,0, 30, self.height - 615, color=(128,0,0))
-
-    self.back2menu = Widget(630,60,150,30,"MENU",self.window)
     
     self.paginationlabel = pyglet.text.Label("ESCALONAMENTO DE PÁGINA",font_name= "Times New Roman",font_size=18,
                                           x=190, y= 140,
@@ -114,6 +116,15 @@ class MyWindow(pyglet.window.Window):
 
   def on_mouse_release(self, x, y, button, modifiers):
     for widget in self.widgets:
+      if widget == self.back2menu and widget.is_clicked(x,y):
+        self.clear()
+        self.window = "Menu"
+        self.rects = []
+        self.current_process_index = 0
+        self.current_rect_index = 0
+        self.window_update_counter = 1
+        continue
+
       if widget == self.sobrecarga:
         continue
 
@@ -156,7 +167,7 @@ class MyWindow(pyglet.window.Window):
   def draw_menu(self):
     self.clear()
     self.background.draw()
-    for widget in self.widgets:
+    for widget in self.widgetsMenu:
         widget.draw()
     for widget in self.editaveis:
         widget.draw()
@@ -201,15 +212,16 @@ class MyWindow(pyglet.window.Window):
       self.contagem = 1
 
   def update(self,dt):
-    self.window_update_counter += 1
-    rect = self.rects[self.current_rect_index]
+    if self.rects and self.current_rect_index < len(self.rects):
+      self.window_update_counter += 1
+      rect = self.rects[self.current_rect_index]
     
-    if rect.width < rect.desired_width:
-      rect.width += self.speed
-    else:
-      self.current_rect_index += 1
-      if rect.nature == "process":
-        self.current_process_index += 1
+      if rect.width < rect.desired_width:
+        rect.width += self.speed
+      else:
+        self.current_rect_index += 1
+        if rect.nature == "process":
+          self.current_process_index += 1
 
       if self.current_rect_index >= len(self.rects):
         pyglet.clock.unschedule(self.update)  # Stop the animation if all rectangles are drawn
@@ -478,24 +490,32 @@ class MyWindow(pyglet.window.Window):
     if self.window == "FIFO":
       self.scheduling_FIFO()
       self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1,self.pagination)
+      self.disk.draw_processes_pages(self.processes_right_order,len(self.processes_right_order),self.pagination)
       self.batch.draw()
+      self.back2menu.draw()
       self.start_animation()
     elif self.window == "SJF":
       self.scheduling_SJF()
       self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1,self.pagination)
+      self.disk.draw_processes_pages(self.processes_right_order,len(self.processes_right_order),self.pagination)
       self.batch.draw()
+      self.back2menu.draw()
       self.start_animation()
     
     elif self.window == "Round Robin":
       self.scheduling_Round_Robin()
       self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1,self.pagination)
+      self.disk.draw_processes_pages(self.processes_right_order,len(self.processes_right_order),self.pagination)
       self.batch.draw()
+      self.back2menu.draw()
       self.start_animation()
     
     elif self.window == "EDF":
       self.scheduling_EDF()
       self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1,self.pagination)
+      self.disk.draw_processes_pages(self.processes_right_order,len(self.processes_right_order),self.pagination)
       self.batch.draw()
+      self.back2menu.draw()
       self.start_animation()
 
   def start_animation(self):
@@ -511,4 +531,3 @@ icon = pyglet.image.load(Path('sprites/blackjack_icon.png'))
 screen.set_icon(icon)
 
 pyglet.app.run()
-

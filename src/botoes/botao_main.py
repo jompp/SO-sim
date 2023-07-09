@@ -4,7 +4,8 @@ numeros = ["0","1","2","3","4","5","6","7","8","9"]
 
 class Widget:
 
-    def __init__(self, x, y, width, height, texto):
+    def __init__(self, x, y, width, height, texto,current_window = None):
+        
         self.x = x
         self.y = y
         self.width = width
@@ -17,14 +18,10 @@ class Widget:
                 anchor_x='center', anchor_y='center',
                 x = self.x + self.width // 2,
                 y = self.y + self.height // 2)
-
-    def contem_ponto(self, x, y):
-        return x >= self.x and x <= self.x + self.width \
-            and y >= self.y and y <= self.y + self.height
-
-    def clica(self, x, y):
-        if self.contem_ponto(x, y):
-            self.on_click()
+        self.current_window = current_window
+    def is_clicked(self, x, y):
+        return self.current_window == "Menu" and self.x <= x <= self.x + self.width \
+            and self.y <= y <= self.y + self.height
     
     def draw(self):
         self.moldura.draw()
@@ -33,14 +30,13 @@ class Widget:
     def __repr__(self):
         return f"Botão '{self.texto}'"
 
-class Botao(Widget):
-    def __init__(self, x, y, width, height, texto, func):
-        super().__init__(x, y, width, height, texto)
-        self.on_click = func
 
-class BotaoInput(Widget):
+class BotaoInput:
     def __init__(self, x, y, width, height, texto=""):
-        super().__init__(x, y, width, height,texto)
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
         self.selecionado = False
         self.texto = texto
         self.valor = 0
@@ -52,13 +48,22 @@ class BotaoInput(Widget):
                 anchor_x='center', anchor_y='center',
                 x = self.x + self.width // 2,
                 y = self.y + self.height // 2)
+        
+    def is_clicked(self, x, y):
+        return self.x <= x <= self.x + self.width \
+and self.y <= y <= self.y + self.height
+    
     def draw(self):
         self.moldura.draw()
         self.linha.draw()
         self.label.draw()
+
     def clica(self, x, y):
         self.selecionado = False
-        super().clica(x, y)
+        if self.is_clicked(x,y):
+            self.on_click()
+        
+        
     def on_click(self):
         self.selecionado = True
         self.label.text = ""
@@ -68,10 +73,8 @@ class BotaoInput(Widget):
             return
         elif symbol == "BACKSPACE":
             self.label.text = self.label.text[0:-1]
-        elif symbol in numeros:
+        if symbol in numeros:
             self.label.text += symbol
-        elif symbol == "ENTER":
-            pass
         else:
             print("Erro, digite apenas números !")
 
