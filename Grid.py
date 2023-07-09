@@ -156,12 +156,15 @@ class Grid:
     page_order.append((row,col))
 
   def pagination_LRU(self,current_process,processes_pagination_status,pages_allocation,page_order):
-    
-    # coloca no final da fila todas as pags do processo referenciado
+
+    if len(page_order) == 0:
+      return
+      
+
     i = 0
-    pages = 0
-    while pages < len(page_order):
-      pages += 1
+    pages = 1
+    while pages <= len(page_order):
+      
       row,col = page_order[i][0],page_order[i][1]
 
       if pages_allocation[abs(row - (self.num_rows - 1))][col] == current_process.id:
@@ -170,9 +173,8 @@ class Grid:
         page_order.append(referenced_page)
       else:
         i += 1
+      pages += 1
       
-      
-
     least_recently_used_page = page_order.pop(0)
     row,col = least_recently_used_page[0],least_recently_used_page[1]
     
@@ -186,10 +188,11 @@ class Grid:
     pass
     
   def draw_processes_pages(self, processes, current_index, pagination_algorithm):
-
+    
     page_order = []
     total_processes = max(processes[:current_index],key=lambda p: p.id).id
 
+    print("retangulo", current_index)
     processes_pagination_status = [0] * (total_processes+1)
     pages_allocation = [[0] * self.num_cols for _ in range(self.num_rows)]
 
@@ -200,13 +203,19 @@ class Grid:
         
         # colocamos no final da fila as pags do processo referenciado
         if pagination_algorithm == "LRU":
-          for i,page in enumerate(page_order):
-            row,col = page[0],page[1]
+          i = 0
+          pages = 1
+          while pages <= len(page_order):
+            
+            row,col = page_order[i][0],page_order[i][1]
 
-            if pages_allocation[abs(row - (self.num_rows-1))][col] == current_process.id:
+            if pages_allocation[abs(row - (self.num_rows - 1))][col] == current_process.id:
+
               referenced_page = page_order.pop(i)
               page_order.append(referenced_page)
-
+            else:
+              i += 1
+            pages += 1
         continue
       
       # So queremos alocar as paginas que estao faltando
@@ -221,7 +230,8 @@ class Grid:
           
           # self.pagination_FIFO(current_process,processes_pagination_status,pages_allocation,page_order)
           self.pagination_LRU(current_process,processes_pagination_status,pages_allocation,page_order)
-          
+    print(page_order)  
+    print("---------------") 
 
   def find_page_address(self,process_id,pages_allocation,processes_pagination_status,page_order):
     for i in range(self.num_rows):
