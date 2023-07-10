@@ -250,25 +250,35 @@ class MyWindow(pyglet.window.Window):
   def scheduling_FIFO(self):
     
     self.processes.sort(key=lambda p: p.arrival_time)
-    self.processes_right_order = self.processes
     prev_end = 50  # Set the initial x-position to the beginning of the x-axis line
+    current_time = 0
+    conclusion_time = 0
 
     for i, process in enumerate(self.processes):
       # Antes de executar o algoritmo, precisamos alocar ele na memoria e garantir q tds as paginas estão la
        
       # Verifica se o processo não chegou na fila de prontos no tempo em que o ultimo acabou 
-      if prev_end - 50 < process.arrival_time:
+      if current_time < process.arrival_time:
         prev_end = process.arrival_time + 50
+        current_time = process.arrival_time
 
       rectangle = Rectangle(x=prev_end, y=50 + i * 50, desired_width= process.duration,width=0, height=HEIGHT,color=(0, 255, 0), id='P'+str(process.id), nature = "process", batch=self.batch)
 
+      current_time += process.duration
       self.rects.append(rectangle)
       prev_end += process.duration
+      conclusion_time += current_time - process.arrival_time
 
-    
+
+    if self.window_update_counter == 1:
+      self.turnaround = (conclusion_time/self.pixels_time_ratio)/len(self.processes)
+      self.processes_right_order = self.processes
+  
+    print(self.turnaround)
   
   def scheduling_SJF(self):
     current_time = 0
+    conclusion_time = 0
     next_process_index = 0
     total_processes = len(self.processes)
     ready_queue = [] 
@@ -299,20 +309,26 @@ class MyWindow(pyglet.window.Window):
       self.rects.append(rectangle)
       prev_end += current_process.duration
       current_time += current_process.duration
+      conclusion_time += current_time - current_process.arrival_time
       completed_processes += 1
+
 
     """"
     Os algoritmos vao executar varias vezes, na primeira vez ele vai alterar as duracoes de cada processo, entao
     so podemos pegar a ordem certa dos processos na primeira vez q ele executa, depois perdemos essa ordem
     """
     if self.window_update_counter == 1:
+      self.turnaround = (conclusion_time/self.pixels_time_ratio)/len(self.processes)
       self.processes_right_order = right_order
+  
+    print(self.turnaround)
     
 
   def scheduling_Round_Robin(self, overload = 20):
     quantum = int(self.quantum.valor) * self.pixels_time_ratio
     ready_queue = deque()
     current_time = 0
+    conclusion_time = 0
     total_processes = len(self.processes)
     completed_processes = [] 
     right_order = []   
@@ -348,6 +364,7 @@ class MyWindow(pyglet.window.Window):
         current_process.duration = 0
         completed_processes.append(current_process)
         self.rects.append(process_rectangle)
+        conclusion_time += current_time - current_process.arrival_time
       
       else:
         process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0, desired_width=quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
@@ -362,83 +379,89 @@ class MyWindow(pyglet.window.Window):
         current_process.duration -= quantum
         ready_queue.append(current_process)
         
-
     """"
     Os algoritmos vao executar varias vezes, na primeira vez ele vai alterar as duracoes de cada processo, entao
     so podemos pegar a ordem certa dos processos na primeira vez q ele executa, depois perdemos essa order
     """
     if self.window_update_counter == 1:
+      self.turnaround = (conclusion_time/self.pixels_time_ratio)/len(self.processes)
       self.processes_right_order = right_order
+    
+    print(self.turnaround)
     
 
   def scheduling_EDF(self,overload = 20):
-    quantum = int(self.quantum.valor) * self.pixels_time_ratio
-    ready_queue = queue.PriorityQueue()
-    current_time = 0 
-    total_processes = len(self.processes)
-    completed_processes = []
-    right_order  = []
-    self.processes.sort(key = lambda p: (p.arrival_time,p.deadline))
-    
-    y_rects_positions= [50*i for i in range(1,len(self.processes)+1)]
-    next_process_index = 0
-
-    prev_end = 50
-    while len(completed_processes) < total_processes:
-      for i in range(next_process_index,total_processes):
-
-        if self.processes[i].arrival_time <= current_time:
-          ready_queue.put(self.processes[i])
-          next_process_index = i + 1
+      quantum = int(self.quantum.valor) * self.pixels_time_ratio
+      ready_queue = queue.PriorityQueue()
+      current_time = 0 
+      conclusion_time = 0
+      total_processes = len(self.processes)
+      completed_processes = []
+      right_order  = []
+      self.processes.sort(key = lambda p: (p.arrival_time,p.deadline))
       
-      if ready_queue.qsize() == 0:
-        current_time += 20
-        prev_end += 20
-        continue
-      
+      y_rects_positions= [50*i for i in range(1,len(self.processes)+1)]
+      next_process_index = 0
 
-      current_process = ready_queue.get()
-      right_order.append(current_process)
+      prev_end = 50
+      while len(completed_processes) < total_processes:
+        for i in range(next_process_index,total_processes):
 
-      if current_process.duration <= quantum:
-        if current_process.deadline < current_time:
-          process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0, desired_width=current_process.duration, height=HEIGHT, color=(211, 211, 211), id='P'+str(current_process.id), nature = "process") 
+          if self.processes[i].arrival_time <= current_time:
+            ready_queue.put(self.processes[i])
+            next_process_index = i + 1
+        
+        if ready_queue.qsize() == 0:
+          current_time += 20
+          prev_end += 20
+          continue
+        
+
+        current_process = ready_queue.get()
+        right_order.append(current_process)
+
+        if current_process.duration <= quantum:
+          if current_process.deadline < current_time:
+            process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0, desired_width=current_process.duration, height=HEIGHT, color=(211, 211, 211), id='P'+str(current_process.id), nature = "process") 
+          else:
+            process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0,desired_width=current_process.duration,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
+
+          current_time += current_process.duration
+          prev_end += current_process.duration
+          conclusion_time += current_time - current_process.arrival_time
+
+          current_process.duration = 0
+          completed_processes.append(current_process)
+          self.rects.append(process_rectangle)
+          
         else:
-          process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0,desired_width=current_process.duration,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
+          if current_process.deadline < current_time:
+            process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0, desired_width=quantum, height=HEIGHT, color=(211, 211, 211), id='P'+str(current_process.id), nature = "process") 
+          else:
+            process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0, desired_width=quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
 
-        current_time += current_process.duration
-        prev_end += current_process.duration
+          prev_end += quantum
+          overload_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0,desired_width=overload, height=HEIGHT, color = (255,0,0),id = "", nature = "overload")
+          prev_end += overload
+          self.rects.append(process_rectangle)
+          self.rects.append(overload_rectangle)
+          
+          
+          current_time += quantum + overload
+          current_process.duration -= quantum
+          current_process.deadline -= quantum
+          # If the process isnt finished, we add it do the end of queue
+          ready_queue.put(current_process)
 
-        current_process.duration = 0
-        completed_processes.append(current_process)
-        self.rects.append(process_rectangle)
-        
-      else:
-        if current_process.deadline < current_time:
-          process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0, desired_width=quantum, height=HEIGHT, color=(211, 211, 211), id='P'+str(current_process.id), nature = "process") 
-        else:
-          process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0, desired_width=quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
+      self.turnaround = (conclusion_time/self.pixels_time_ratio)/len(self.processes)
+      print(self.turnaround)
 
-        prev_end += quantum
-        overload_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0,desired_width=overload, height=HEIGHT, color = (255,0,0),id = "", nature = "overload")
-        prev_end += overload
-        self.rects.append(process_rectangle)
-        self.rects.append(overload_rectangle)
-        
-        
-        current_time += quantum + overload
-        current_process.duration -= quantum
-        current_process.deadline -= quantum
-        # If the process isnt finished, we add it do the end of queue
-        ready_queue.put(current_process)
-
-    """"
-    Os algoritmos vao executar varias vezes, na primeira vez ele vai alterar as duracoes de cada processo, entao
-    so podemos pegar a ordem certa dos processos na primeira vez q ele executa, depois perdemos essa order
-    """
-    if self.window_update_counter == 1:
-      self.processes_right_order = right_order
-    
+      """"
+      Os algoritmos vao executar varias vezes, na primeira vez ele vai alterar as duracoes de cada processo, entao
+      so podemos pegar a ordem certa dos processos na primeira vez q ele executa, depois perdemos essa order
+      """
+      if self.window_update_counter == 1:
+        self.processes_right_order = right_order
 
   def draw_processes_labels(self):
     for i,rect in enumerate(self.rects):

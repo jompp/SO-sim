@@ -160,7 +160,6 @@ class Grid:
     if len(page_order) == 0:
       return
       
-
     i = 0
     pages = 1
     while pages <= len(page_order):
@@ -192,7 +191,6 @@ class Grid:
     page_order = []
     total_processes = max(processes[:current_index],key=lambda p: p.id).id
 
-    
     processes_pagination_status = [0] * (total_processes+1)
     pages_allocation = [[0] * self.num_cols for _ in range(self.num_rows)]
 
@@ -228,8 +226,12 @@ class Grid:
             
           # chama algum algoritmo de paginação
           
-          # self.pagination_FIFO(current_process,processes_pagination_status,pages_allocation,page_order)
-          self.pagination_LRU(current_process,processes_pagination_status,pages_allocation,page_order)
+          if pagination_algorithm == "LRU":
+            self.pagination_LRU(current_process,processes_pagination_status,pages_allocation,page_order)
+
+          elif pagination_algorithm == "FIFO":
+            self.pagination_FIFO(current_process,processes_pagination_status,pages_allocation,page_order)
+        
     
 
   def find_page_address(self,process_id,pages_allocation,processes_pagination_status,page_order):

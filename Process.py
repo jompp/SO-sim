@@ -6,8 +6,9 @@ class Process:
     self.duration = duration 
     self.arrival_time = arrival_time
     self.deadline = deadline
+    self.absolute_deadline = deadline
     self.pages = pages
-
+    
   def __lt__(self,other):
     return self.deadline < other.deadline
   
