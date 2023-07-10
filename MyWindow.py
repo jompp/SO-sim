@@ -2,6 +2,7 @@ import pyglet
 from pyglet import gl
 from pathlib import Path
 from collections import deque
+import math
 import queue
 from Process import Process
 from src.Rectangle import Rectangle
@@ -34,11 +35,12 @@ class MyWindow(pyglet.window.Window):
     self.turnaround = 0
     self.pixels_time_ratio = 20
     self.window_update_counter = 1
-
+    self.turnaroundDisplay = Widget(1035,370,300,50,"TURNAROUND = " + str(self.turnaround),self.window)
     """
       Memoria
     """
-    # Na tela do gantt teremos dois grids, um de disco e outro de RAM
+    # Na tela do gantt teremos dois grids, um de disc
+    # o e outro de RAM
     self.ram = Grid(memory="RAM")
     self.disk = Grid(memory="Disk")
 
@@ -213,7 +215,8 @@ class MyWindow(pyglet.window.Window):
 
       if self.current_rect_index >= len(self.rects):
         pyglet.clock.unschedule(self.update)  # Stop the animation if all rectangles are drawn
-
+    
+    self.turnaroundDisplay.label.text = "TURNAROUND = " + str(self.turnaround)
   def draw_graph(self):
     gl.glClearColor(1, 1, 1, 1)  # Set background color to white
     self.clear()
@@ -271,10 +274,10 @@ class MyWindow(pyglet.window.Window):
 
 
     if self.window_update_counter == 1:
-      self.turnaround = (conclusion_time/self.pixels_time_ratio)/len(self.processes)
+      self.turnaround = round((conclusion_time/self.pixels_time_ratio)/len(self.processes),2)
       self.processes_right_order = self.processes
   
-    print(self.turnaround)
+    
   
   def scheduling_SJF(self):
     current_time = 0
@@ -318,10 +321,10 @@ class MyWindow(pyglet.window.Window):
     so podemos pegar a ordem certa dos processos na primeira vez q ele executa, depois perdemos essa ordem
     """
     if self.window_update_counter == 1:
-      self.turnaround = (conclusion_time/self.pixels_time_ratio)/len(self.processes)
+      self.turnaround = round((conclusion_time/self.pixels_time_ratio)/len(self.processes),2)
       self.processes_right_order = right_order
   
-    print(self.turnaround)
+    
     
 
   def scheduling_Round_Robin(self, overload = 20):
@@ -384,10 +387,10 @@ class MyWindow(pyglet.window.Window):
     so podemos pegar a ordem certa dos processos na primeira vez q ele executa, depois perdemos essa order
     """
     if self.window_update_counter == 1:
-      self.turnaround = (conclusion_time/self.pixels_time_ratio)/len(self.processes)
+      self.turnaround = round((conclusion_time/self.pixels_time_ratio)/len(self.processes),2)
       self.processes_right_order = right_order
+
     
-    print(self.turnaround)
     
 
   def scheduling_EDF(self,overload = 20):
@@ -421,7 +424,8 @@ class MyWindow(pyglet.window.Window):
         right_order.append(current_process)
 
         if current_process.duration <= quantum:
-          if current_process.deadline < current_time:
+
+          if current_process.absolute_deadline < current_time:
             process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0, desired_width=current_process.duration, height=HEIGHT, color=(211, 211, 211), id='P'+str(current_process.id), nature = "process") 
           else:
             process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0,desired_width=current_process.duration,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
@@ -435,7 +439,7 @@ class MyWindow(pyglet.window.Window):
           self.rects.append(process_rectangle)
           
         else:
-          if current_process.deadline < current_time:
+          if current_process.absolute_deadline < current_time:
             process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1], width= 0, desired_width=quantum, height=HEIGHT, color=(211, 211, 211), id='P'+str(current_process.id), nature = "process") 
           else:
             process_rectangle = Rectangle(x = prev_end, y = y_rects_positions[current_process.id-1],width= 0, desired_width=quantum,height=HEIGHT, color = (0,255,0), id = 'P'+str(current_process.id), nature = "process")
@@ -453,15 +457,16 @@ class MyWindow(pyglet.window.Window):
           # If the process isnt finished, we add it do the end of queue
           ready_queue.put(current_process)
 
-      self.turnaround = (conclusion_time/self.pixels_time_ratio)/len(self.processes)
-      print(self.turnaround)
-
+  
       """"
       Os algoritmos vao executar varias vezes, na primeira vez ele vai alterar as duracoes de cada processo, entao
       so podemos pegar a ordem certa dos processos na primeira vez q ele executa, depois perdemos essa order
       """
       if self.window_update_counter == 1:
         self.processes_right_order = right_order
+        self.turnaround = round((conclusion_time/self.pixels_time_ratio)/len(self.processes),2)
+      
+
 
   def draw_processes_labels(self):
     for i,rect in enumerate(self.rects):
@@ -501,23 +506,31 @@ class MyWindow(pyglet.window.Window):
     if self.window == "FIFO":
       self.scheduling_FIFO()
       self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1,self.pagination)
+      self.disk.draw_processes_pages(self.processes_right_order,len(self.processes_right_order),self.pagination)
+      self.turnaroundDisplay.draw()
       self.batch.draw()
       self.start_animation()
     elif self.window == "SJF":
       self.scheduling_SJF()
       self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1,self.pagination)
+      self.disk.draw_processes_pages(self.processes_right_order,len(self.processes_right_order),self.pagination)
+      self.turnaroundDisplay.draw()
       self.batch.draw()
       self.start_animation()
     
     elif self.window == "Round Robin":
       self.scheduling_Round_Robin()
       self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1,self.pagination)
+      self.disk.draw_processes_pages(self.processes_right_order,len(self.processes_right_order),self.pagination)
+      self.turnaroundDisplay.draw()
       self.batch.draw()
       self.start_animation()
     
     elif self.window == "EDF":
       self.scheduling_EDF()
       self.ram.draw_processes_pages(self.processes_right_order,self.current_process_index+1,self.pagination)
+      self.disk.draw_processes_pages(self.processes_right_order,len(self.processes_right_order),self.pagination)
+      self.turnaroundDisplay.draw()
       self.batch.draw()
       self.start_animation()
 
